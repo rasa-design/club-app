@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1",
+    "title": "春季地区大会",
+    "date": "2025-04-19",
+    "endDate": "2025-04-20",
+    "location": "市立体育館",
+    "description": ""
+  },
+  {
+    "id": "2",
+    "title": "県大会予選",
+    "date": "2025-06-07",
+    "endDate": "2025-06-08",
+    "location": "県立武道館",
+    "description": ""
+  },
+  {
+    "id": "3",
+    "title": "夏季強化合宿",
+    "date": "2025-07-26",
+    "endDate": "2025-07-28",
+    "location": "○○研修センター",
+    "description": ""
+  },
+  {
+    "id": "4",
+    "title": "秋季大会",
+    "date": "2025-10-11",
+    "endDate": "2025-10-12",
+    "location": "市立体育館",
+    "description": ""
+  },
+  {
+    "id": "5",
+    "title": "冬季大会",
+    "date": "2026-01-24",
+    "endDate": "2026-01-25",
+    "location": "県立武道館",
+    "description": ""
+  }
+]
