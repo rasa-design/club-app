@@ -1,7 +1,5 @@
-import fs from 'fs'
-import path from 'path'
-
-const dataDir = path.join(process.cwd(), 'data')
+import { readStorage, writeStorage } from '@/lib/storage'
+import { currentSchoolYear as _currentSchoolYear } from '@/lib/grade'
 
 export type Event = {
   id: string
@@ -15,44 +13,78 @@ export type Event = {
 export type Member = {
   id: string
   name: string
-  grade: number
+  grade: number // 4=小4, 5=小5, 6=小6, 7=中1, 8=中2, 9=中3, 10=高1, 11=高2, 12=高3, 13=大1, 14=大2, 15=大3, 16=大4
 }
 
-// payments: { [memberId]: { [yearMonth]: boolean } }
-// yearMonth format: "2025-04"
-export type Payments = Record<string, Record<string, boolean>>
+// payments: { [memberId]: { [yearMonth]: true | '退会' } }
+export type PaymentStatus = true | '退会'
+export type Payments = Record<string, Record<string, PaymentStatus>>
 
-function readJSON<T>(filename: string): T {
-  const file = path.join(dataDir, filename)
-  const raw = fs.readFileSync(file, 'utf-8')
-  return JSON.parse(raw) as T
+// 年度別メンバーデータ: { [schoolYear]: Member[] }
+export type MembersData = Record<string, Member[]>
+
+// クライアント共通ユーティリティは lib/grade.ts から再エクスポート
+export { GRADE_OPTIONS, gradeLabel, currentSchoolYear } from '@/lib/grade'
+
+export async function getEvents(): Promise<Event[]> {
+  return readStorage<Event[]>('events', [])
 }
 
-function writeJSON(filename: string, data: unknown): void {
-  const file = path.join(dataDir, filename)
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8')
+export async function saveEvents(events: Event[]): Promise<void> {
+  return writeStorage('events', events)
 }
 
-export function getEvents(): Event[] {
-  return readJSON<Event[]>('events.json')
+export async function getMembersData(): Promise<MembersData> {
+  return readStorage<MembersData>('members', {})
 }
 
-export function saveEvents(events: Event[]): void {
-  writeJSON('events.json', events)
+export async function saveMembersData(data: MembersData): Promise<void> {
+  return writeStorage('members', data)
 }
 
-export function getMembers(): Member[] {
-  return readJSON<Member[]>('members.json')
+export async function getMembers(year: number): Promise<Member[]> {
+  const data = await getMembersData()
+  return data[String(year)] ?? []
 }
 
-export function saveMembers(members: Member[]): void {
-  writeJSON('members.json', members)
+// メンバーが存在する最新の年度を返す
+export async function getLatestMembersYear(): Promise<number> {
+  const data = await getMembersData()
+  const years = Object.keys(data)
+    .map(Number)
+    .filter((y) => data[String(y)].length > 0)
+    .sort((a, b) => b - a)
+  return years[0] ?? _currentSchoolYear()
 }
 
-export function getPayments(): Payments {
-  return readJSON<Payments>('payments.json')
+export async function getPayments(): Promise<Payments> {
+  return readStorage<Payments>('payments', {})
 }
 
-export function savePayments(payments: Payments): void {
-  writeJSON('payments.json', payments)
+export async function savePayments(payments: Payments): Promise<void> {
+  return writeStorage('payments', payments)
+}
+
+// 練習日: { [date: "YYYY-MM-DD"]: PracticeSlot[] }
+export type PracticeSlot = { id: string; start: string; end: string }
+export type Practices = Record<string, PracticeSlot[]>
+
+export async function getPractices(): Promise<Practices> {
+  return readStorage<Practices>('practices', {})
+}
+
+export async function savePractices(practices: Practices): Promise<void> {
+  return writeStorage('practices', practices)
+}
+
+// 参加記録: { [date: "YYYY-MM-DD"]: { [memberId]: { start: string; end: string } } }
+export type AttendanceRecord = { start: string; end: string }
+export type Attendance = Record<string, Record<string, AttendanceRecord>>
+
+export async function getAttendance(): Promise<Attendance> {
+  return readStorage<Attendance>('attendance', {})
+}
+
+export async function saveAttendance(attendance: Attendance): Promise<void> {
+  return writeStorage('attendance', attendance)
 }

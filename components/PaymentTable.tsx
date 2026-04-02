@@ -1,12 +1,37 @@
 'use client'
 
-import { useState } from 'react'
-import { Member, Payments } from '@/lib/data'
+import { useState, useEffect, useRef } from 'react'
+import { Member, Payments, PaymentStatus } from '@/lib/data'
+import { gradeLabel, currentSchoolYear } from '@/lib/grade'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
-// School year: April of current year to March of next year
-function getSchoolYearMonths(): { year: number; month: number; label: string }[] {
-  const today = new Date()
-  const schoolYear = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1
+type SortOrder = 'name' | 'grade'
+
+function sortMembers(members: Member[], order: SortOrder): Member[] {
+  return [...members].sort((a, b) => {
+    if (order === 'name') return a.name.localeCompare(b.name, 'ja')
+    return a.grade - b.grade
+  })
+}
+
+function getSchoolYearMonths(schoolYear: number): { year: number; month: number; label: string }[] {
   const months = []
   for (let m = 4; m <= 12; m++) {
     months.push({ year: schoolYear, month: m, label: `${m}月` })
@@ -17,39 +42,74 @@ function getSchoolYearMonths(): { year: number; month: number; label: string }[]
   return months
 }
 
-function yearMonth(year: number, month: number): string {
+function toYearMonth(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, '0')}`
 }
 
+function getSelectableYears(): number[] {
+  const cur = currentSchoolYear()
+  return [cur - 2, cur - 1, cur, cur + 1, cur + 2]
+}
+
+// 3段階トグル: undefined → paid → 退会 → undefined
+function nextStatus(current: PaymentStatus | undefined): 'paid' | 'withdrawn' | 'clear' {
+  if (current === undefined) return 'paid'
+  if (current === true) return 'withdrawn'
+  return 'clear'
+}
+
 export default function PaymentTable({
-  members,
+  members: initialMembers,
   payments: initialPayments,
   isAdmin,
+  initialYear,
 }: {
   members: Member[]
   payments: Payments
   isAdmin: boolean
+  initialYear?: number
 }) {
-  const months = getSchoolYearMonths()
+  const [schoolYear, setSchoolYear] = useState(initialYear ?? currentSchoolYear())
+  const months = getSchoolYearMonths(schoolYear)
+  const [members, setMembers] = useState<Member[]>(initialMembers)
   const [payments, setPayments] = useState<Payments>(initialPayments)
   const [loading, setLoading] = useState<string | null>(null)
+  const [sortOrder, setSortOrder] = useState<SortOrder>('grade')
+  const isFirstRender = useRef(true)
+
+  const sortedMembers = sortMembers(members, sortOrder)
+
+  // 年度切替時にメンバーを再取得
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    fetch(`/api/members?year=${schoolYear}`)
+      .then((r) => r.json())
+      .then(setMembers)
+  }, [schoolYear])
 
   const toggle = async (memberId: string, year: number, month: number) => {
     if (!isAdmin) return
-    const ym = yearMonth(year, month)
-    const current = payments[memberId]?.[ym] ?? false
+    const ym = toYearMonth(year, month)
+    const current = payments[memberId]?.[ym]
+    const status = nextStatus(current)
     const key = `${memberId}-${ym}`
     setLoading(key)
     const res = await fetch('/api/payments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberId, yearMonth: ym, paid: !current }),
+      body: JSON.stringify({ memberId, yearMonth: ym, status }),
     })
     if (res.ok) {
       setPayments((prev) => {
         const next = { ...prev, [memberId]: { ...(prev[memberId] ?? {}) } }
-        if (!current) next[memberId][ym] = true
-        else delete next[memberId][ym]
+        if (status === 'clear') {
+          delete next[memberId][ym]
+        } else {
+          next[memberId][ym] = status === 'paid' ? true : '退会'
+        }
         return next
       })
     }
@@ -57,53 +117,127 @@ export default function PaymentTable({
   }
 
   return (
-    <div className="overflow-x-auto -mx-4">
-      <table className="min-w-full text-sm border-collapse">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="sticky left-0 bg-gray-100 text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">氏名</th>
-            {months.map((m) => (
-              <th key={`${m.year}-${m.month}`} className="px-2 py-2 font-medium text-gray-600 text-center min-w-[40px]">
-                {m.label}
-              </th>
+    <div className="space-y-3">
+      {/* 年度セレクター + 並び替え */}
+      <div className="flex items-center gap-2">
+        <Select
+          value={String(schoolYear)}
+          onValueChange={(v) => v !== null && setSchoolYear(Number(v))}
+        >
+          <SelectTrigger className="w-32 text-xs">
+            <span>{schoolYear}年度</span>
+          </SelectTrigger>
+          <SelectContent className="w-52">
+            {getSelectableYears().map((y) => (
+              <SelectItem key={y} value={String(y)}>
+                {y}年度（{y}/4〜{y + 1}/3）
+              </SelectItem>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {members.map((member, idx) => (
-            <tr key={member.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-              <td className={`sticky left-0 px-4 py-2 font-medium text-gray-800 whitespace-nowrap ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                {member.name}
-                <span className="ml-1 text-xs text-gray-400">{member.grade}年</span>
-              </td>
-              {months.map((m) => {
-                const ym = yearMonth(m.year, m.month)
-                const paid = payments[member.id]?.[ym] ?? false
-                const key = `${member.id}-${ym}`
-                return (
-                  <td key={ym} className="px-1 py-2 text-center">
-                    <button
-                      onClick={() => toggle(member.id, m.year, m.month)}
-                      disabled={!isAdmin || loading === key}
-                      className={`w-8 h-8 rounded-full text-base font-bold transition-all
-                        ${paid
-                          ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                          : isAdmin
-                            ? 'bg-gray-100 text-gray-300 hover:bg-gray-200'
-                            : 'bg-transparent text-gray-200 cursor-default'
-                        }
-                        ${loading === key ? 'opacity-50' : ''}
-                      `}
-                    >
-                      {paid ? '○' : '−'}
-                    </button>
-                  </td>
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </SelectContent>
+        </Select>
+        <div className="flex rounded-md border overflow-hidden ml-auto shrink-0">
+          <button
+            onClick={() => setSortOrder('grade')}
+            className={cn(
+              'w-16 py-1.5 text-xs font-medium transition-colors whitespace-nowrap',
+              sortOrder === 'grade'
+                ? 'bg-muted text-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted/50'
+            )}
+          >
+            学年順
+          </button>
+          <button
+            onClick={() => setSortOrder('name')}
+            className={cn(
+              'w-16 py-1.5 text-xs font-medium border-l transition-colors whitespace-nowrap',
+              sortOrder === 'name'
+                ? 'bg-muted text-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted/50'
+            )}
+          >
+            五十音順
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="sticky left-0 bg-muted whitespace-nowrap min-w-[100px] z-10">
+                氏名
+              </TableHead>
+              {months.map((m) => (
+                <TableHead
+                  key={toYearMonth(m.year, m.month)}
+                  className="text-center px-1 min-w-[40px]"
+                >
+                  {m.label}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {members.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={months.length + 1}
+                  className="text-center text-muted-foreground py-6 text-sm"
+                >
+                  {schoolYear}年度の部員データがありません
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedMembers.map((member) => (
+                <TableRow key={member.id}>
+                  <TableCell className="sticky left-0 bg-background font-medium whitespace-nowrap z-10">
+                    {member.name}
+                    <Badge variant="outline" className="ml-1 text-xs font-normal py-0">
+                      {gradeLabel(member.grade)}
+                    </Badge>
+                  </TableCell>
+                  {months.map((m) => {
+                    const ym = toYearMonth(m.year, m.month)
+                    const status = payments[member.id]?.[ym]
+                    const key = `${member.id}-${ym}`
+                    const isPaid = status === true
+                    const isWithdrawn = status === '退会'
+                    return (
+                      <TableCell key={ym} className="text-center px-1 py-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            'h-8 w-8 rounded-full',
+                            isPaid
+                              ? 'text-sm font-bold bg-transparent hover:bg-muted text-[#3BBFAD]'
+                              : isWithdrawn
+                                ? 'text-[10px] font-medium bg-transparent hover:bg-muted text-muted-foreground/60'
+                                : isAdmin
+                                  ? 'text-sm text-muted-foreground hover:bg-muted'
+                                  : 'text-sm cursor-default text-muted'
+                          )}
+                          onClick={() => toggle(member.id, m.year, m.month)}
+                          disabled={!isAdmin || loading === key}
+                        >
+                          {isPaid ? '○' : isWithdrawn ? '退会' : '−'}
+                        </Button>
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {isAdmin && (
+        <p className="text-xs text-muted-foreground">
+          タップで切り替え：− → ○（支払済）→ 退会 → −
+        </p>
+      )}
     </div>
   )
 }

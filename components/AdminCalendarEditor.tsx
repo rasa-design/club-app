@@ -1,9 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Event } from '@/lib/data'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
+import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { MapPin, Plus, Pencil, Trash2 } from 'lucide-react'
 
-const emptyEvent = (): Omit<Event, 'id'> => ({
+const emptyForm = (): Omit<Event, 'id'> => ({
   title: '',
   date: '',
   endDate: '',
@@ -18,11 +36,20 @@ function formatDate(dateStr: string): string {
 }
 
 export default function AdminCalendarEditor({ initialEvents }: { initialEvents: Event[] }) {
-  const [events, setEvents] = useState<Event[]>(initialEvents.sort((a, b) => a.date.localeCompare(b.date)))
+  const [events, setEvents] = useState<Event[]>(
+    initialEvents.sort((a, b) => a.date.localeCompare(b.date))
+  )
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState(emptyEvent())
   const [editId, setEditId] = useState<string | null>(null)
+  const [form, setForm] = useState(emptyForm())
   const [saving, setSaving] = useState(false)
+  const addFormRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (adding && addFormRef.current) {
+      addFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+  }, [adding])
 
   const saveEvent = async () => {
     if (!form.title || !form.date) return
@@ -35,7 +62,9 @@ export default function AdminCalendarEditor({ initialEvents }: { initialEvents: 
       })
       if (res.ok) {
         const updated: Event = await res.json()
-        setEvents((prev) => prev.map((e) => (e.id === editId ? updated : e)).sort((a, b) => a.date.localeCompare(b.date)))
+        setEvents((prev) =>
+          prev.map((e) => (e.id === editId ? updated : e)).sort((a, b) => a.date.localeCompare(b.date))
+        )
         setEditId(null)
       }
     } else {
@@ -46,16 +75,17 @@ export default function AdminCalendarEditor({ initialEvents }: { initialEvents: 
       })
       if (res.ok) {
         const created: Event = await res.json()
-        setEvents((prev) => [...prev, created].sort((a, b) => a.date.localeCompare(b.date)))
+        setEvents((prev) =>
+          [...prev, created].sort((a, b) => a.date.localeCompare(b.date))
+        )
         setAdding(false)
       }
     }
-    setForm(emptyEvent())
+    setForm(emptyForm())
     setSaving(false)
   }
 
   const deleteEvent = async (id: string) => {
-    if (!confirm('削除しますか？')) return
     const res = await fetch('/api/events', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -73,48 +103,84 @@ export default function AdminCalendarEditor({ initialEvents }: { initialEvents: 
   const cancelForm = () => {
     setAdding(false)
     setEditId(null)
-    setForm(emptyEvent())
+    setForm(emptyForm())
   }
 
-  const showForm = adding || editId !== null
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {events.map((e) => (
-        <div key={e.id} className="bg-white rounded-xl border border-gray-200 p-4">
-          {editId === e.id ? (
-            <EventForm form={form} setForm={setForm} onSave={saveEvent} onCancel={cancelForm} saving={saving} />
-          ) : (
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="font-semibold text-gray-800">{e.title}</div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {formatDate(e.date)}{e.endDate && e.endDate !== e.date ? ` 〜 ${formatDate(e.endDate)}` : ''}
-                  {e.location ? ` ／ ${e.location}` : ''}
+        <Card key={e.id}>
+          <CardContent className="py-3 px-4">
+            {editId === e.id ? (
+              <EventForm form={form} setForm={setForm} onSave={saveEvent} onCancel={cancelForm} saving={saving} />
+            ) : (
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1 min-w-0">
+                  <div className="font-semibold truncate">{e.title}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      {formatDate(e.date)}
+                      {e.endDate && e.endDate !== e.date ? ` 〜 ${formatDate(e.endDate)}` : ''}
+                    </Badge>
+                    {e.location && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                        <MapPin className="h-3 w-3" />
+                        {e.location}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(e)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger
+                      render={
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" />
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>行事を削除しますか？</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          「{e.title}」を削除します。この操作は取り消せません。
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteEvent(e.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          削除する
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
-              <div className="flex gap-1 shrink-0">
-                <button onClick={() => startEdit(e)} className="text-xs text-blue-600 hover:underline px-2 py-1">編集</button>
-                <button onClick={() => deleteEvent(e.id)} className="text-xs text-red-500 hover:underline px-2 py-1">削除</button>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
       ))}
 
-      {adding && !editId && (
-        <div className="bg-white rounded-xl border border-blue-200 p-4">
-          <EventForm form={form} setForm={setForm} onSave={saveEvent} onCancel={cancelForm} saving={saving} />
-        </div>
+      {adding && (
+        <Card className="border-primary/30" ref={addFormRef}>
+          <CardContent className="py-3 px-4">
+            <EventForm form={form} setForm={setForm} onSave={saveEvent} onCancel={cancelForm} saving={saving} />
+          </CardContent>
+        </Card>
       )}
 
-      {!showForm && (
-        <button
-          onClick={() => setAdding(true)}
-          className="w-full border-2 border-dashed border-gray-300 rounded-xl py-3 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
+      {!adding && editId === null && (
+        <Button
+          variant="outline"
+          className="w-full border-dashed"
+          onClick={() => { setAdding(true); setForm(emptyForm()) }}
         >
-          ＋ 行事を追加
-        </button>
+          <Plus className="h-4 w-4 mr-1" />
+          行事を追加
+        </Button>
       )}
     </div>
   )
@@ -133,32 +199,42 @@ function EventForm({
   onCancel: () => void
   saving: boolean
 }) {
-  const field = (key: keyof Omit<Event, 'id'>, label: string, type = 'text', required = false) => (
-    <div>
-      <label className="block text-xs text-gray-500 mb-0.5">{label}{required && ' *'}</label>
-      <input
-        type={type}
-        value={form[key]}
-        onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))}
-        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required={required}
-      />
-    </div>
-  )
+  const update = (key: keyof Omit<Event, 'id'>) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((prev) => ({ ...prev, [key]: e.target.value }))
+  const setField = (key: keyof Omit<Event, 'id'>) => (value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }))
+
   return (
-    <div className="space-y-2">
-      {field('title', 'タイトル', 'text', true)}
-      <div className="grid grid-cols-2 gap-2">
-        {field('date', '開始日', 'date', true)}
-        {field('endDate', '終了日', 'date')}
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label>タイトル <span className="text-destructive">*</span></Label>
+        <Input value={form.title} onChange={update('title')} required />
       </div>
-      {field('location', '場所')}
-      {field('description', 'メモ')}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label>開始日 <span className="text-destructive">*</span></Label>
+          <DatePicker value={form.date} onChange={setField('date')} placeholder="開始日" />
+        </div>
+        <div className="space-y-1">
+          <Label>終了日</Label>
+          <DatePicker value={form.endDate} onChange={setField('endDate')} placeholder="終了日" />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label>場所</Label>
+        <Input value={form.location} onChange={update('location')} />
+      </div>
+      <div className="space-y-1">
+        <Label>メモ</Label>
+        <Input value={form.description} onChange={update('description')} />
+      </div>
       <div className="flex gap-2 pt-1">
-        <button onClick={onSave} disabled={saving} className="bg-blue-600 text-white text-sm rounded-lg px-4 py-1.5 hover:bg-blue-700 disabled:opacity-50">
+        <Button onClick={onSave} disabled={saving || !form.title || !form.date} className="flex-1">
           {saving ? '保存中...' : '保存'}
-        </button>
-        <button onClick={onCancel} className="text-sm text-gray-500 px-3 py-1.5 hover:text-gray-700">キャンセル</button>
+        </Button>
+        <Button variant="ghost" onClick={onCancel} className="flex-1">
+          キャンセル
+        </Button>
       </div>
     </div>
   )
