@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
+import { fn } from '@storybook/test'
 import AdminCalendarEditor from './AdminCalendarEditor'
 import type { Event } from '@/lib/data'
 
@@ -31,9 +32,9 @@ const events: Event[] = [
 ]
 
 export const 行事あり: Story = {
-  args: { initialEvents: events },
+  args: { events, setEvents: fn() },
 }
 
 export const 行事なし: Story = {
-  args: { initialEvents: [] },
+  args: { events: [], setEvents: fn() },
 }
