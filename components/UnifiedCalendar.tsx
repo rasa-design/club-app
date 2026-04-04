@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
@@ -63,7 +63,7 @@ type MemberState = { attended: boolean; start: string; end: string }
 type PracticeState = Record<string, MemberState>
 type TabMode = 'practice' | 'event'
 
-type AddForm = { title: string; date: string; endDate: string; location: string; description: string }
+type AddForm = { title: string; date: string; endDate: string; location: string; description: string; poleCarrier?: string; entryDeadline?: string }
 
 export default function UnifiedCalendar({
   initialPractices,
@@ -525,6 +525,18 @@ export default function UnifiedCalendar({
                               {event.location}
                             </span>
                           )}
+                          {event.entryDeadline && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                              <CalendarClock className="h-3 w-3" />
+                              締切 {formatDate(event.entryDeadline)}
+                            </span>
+                          )}
+                          {event.poleCarrier && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                              <User className="h-3 w-3" />
+                              運搬 {event.poleCarrier}
+                            </span>
+                          )}
                         </div>
                         {event.description && (
                           <p className="text-xs text-muted-foreground">{event.description}</p>
@@ -622,6 +634,22 @@ export default function UnifiedCalendar({
                         onChange={e => setAddForm(f => f ? { ...f, description: e.target.value } : f)}
                       />
                     </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">申し込み締め切り日</Label>
+                      <DatePicker
+                        value={addForm.entryDeadline ?? ''}
+                        onChange={v => setAddForm(f => f ? { ...f, entryDeadline: v } : f)}
+                        placeholder="締め切り日"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">ポール運搬担当者</Label>
+                      <Input
+                        value={addForm.poleCarrier ?? ''}
+                        onChange={e => setAddForm(f => f ? { ...f, poleCarrier: e.target.value } : f)}
+                        placeholder="例：山田さん"
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => setAddForm(null)}>
                         キャンセル
@@ -717,6 +745,18 @@ export default function UnifiedCalendar({
                           {e.location}
                         </span>
                       )}
+                      {e.entryDeadline && (
+                        <span className="flex items-center gap-0.5">
+                          <CalendarClock className="h-3 w-3" />
+                          締切 {formatDate(e.entryDeadline)}
+                        </span>
+                      )}
+                      {e.poleCarrier && (
+                        <span className="flex items-center gap-0.5">
+                          <User className="h-3 w-3" />
+                          運搬 {e.poleCarrier}
+                        </span>
+                      )}
                     </div>
                     {e.description && (
                       <p className="text-xs text-muted-foreground">{e.description}</p>
@@ -749,6 +789,18 @@ export default function UnifiedCalendar({
                 <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                   <MapPin className="h-3 w-3" />
                   {poleDialog.event.location}
+                </span>
+              )}
+              {poleDialog?.event.entryDeadline && (
+                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                  <CalendarClock className="h-3 w-3" />
+                  締切 {formatDate(poleDialog.event.entryDeadline)}
+                </span>
+              )}
+              {poleDialog?.event.poleCarrier && (
+                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                  <User className="h-3 w-3" />
+                  運搬 {poleDialog.event.poleCarrier}
                 </span>
               )}
             </div>

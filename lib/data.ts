@@ -8,6 +8,8 @@ export type Event = {
   endDate: string
   location: string
   description: string
+  poleCarrier?: string   // ポール運搬担当者
+  entryDeadline?: string // 申し込み締め切り日 (YYYY-MM-DD)
 }
 
 export type Member = {

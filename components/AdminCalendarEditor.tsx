@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { MapPin, Plus, Pencil, Trash2 } from 'lucide-react'
+import { MapPin, Plus, Pencil, Trash2, User, CalendarClock } from 'lucide-react'
 
 const emptyForm = (): Omit<Event, 'id'> => ({
   title: '',
@@ -27,6 +27,8 @@ const emptyForm = (): Omit<Event, 'id'> => ({
   endDate: '',
   location: '',
   description: '',
+  poleCarrier: '',
+  entryDeadline: '',
 })
 
 function formatDate(dateStr: string): string {
@@ -96,7 +98,7 @@ export default function AdminCalendarEditor({ initialEvents }: { initialEvents: 
 
   const startEdit = (e: Event) => {
     setEditId(e.id)
-    setForm({ title: e.title, date: e.date, endDate: e.endDate, location: e.location, description: e.description })
+    setForm({ title: e.title, date: e.date, endDate: e.endDate, location: e.location, description: e.description, poleCarrier: e.poleCarrier ?? '', entryDeadline: e.entryDeadline ?? '' })
     setAdding(false)
   }
 
@@ -126,6 +128,18 @@ export default function AdminCalendarEditor({ initialEvents }: { initialEvents: 
                       <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                         <MapPin className="h-3 w-3" />
                         {e.location}
+                      </span>
+                    )}
+                    {e.entryDeadline && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                        <CalendarClock className="h-3 w-3" />
+                        締切 {formatDate(e.entryDeadline)}
+                      </span>
+                    )}
+                    {e.poleCarrier && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                        <User className="h-3 w-3" />
+                        運搬 {e.poleCarrier}
                       </span>
                     )}
                   </div>
@@ -227,6 +241,14 @@ function EventForm({
       <div className="space-y-1">
         <Label>メモ</Label>
         <Input value={form.description} onChange={update('description')} />
+      </div>
+      <div className="space-y-1">
+        <Label>申し込み締め切り日</Label>
+        <DatePicker value={form.entryDeadline ?? ''} onChange={setField('entryDeadline')} placeholder="締め切り日" />
+      </div>
+      <div className="space-y-1">
+        <Label>ポール運搬担当者</Label>
+        <Input value={form.poleCarrier ?? ''} onChange={update('poleCarrier')} placeholder="例：山田さん" />
       </div>
       <div className="flex gap-2 pt-1">
         <Button onClick={onSave} disabled={saving || !form.title || !form.date} className="flex-1">
