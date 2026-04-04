@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, Pole, EventPoles } from '@/lib/data'
+import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, Pole, EventPoles, EventRecords } from '@/lib/data'
 import { gradeLabel } from '@/lib/grade'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,6 +72,7 @@ export default function UnifiedCalendar({
   initialEventAttendance,
   poles,
   initialEventPoles,
+  initialEventRecords,
   members,
   isAdmin,
 }: {
@@ -81,6 +82,7 @@ export default function UnifiedCalendar({
   initialEventAttendance: EventAttendance
   poles: Pole[]
   initialEventPoles: EventPoles
+  initialEventRecords: EventRecords
   members: Member[]
   isAdmin: boolean
 }) {
@@ -101,6 +103,8 @@ export default function UnifiedCalendar({
   // ポール選択ダイアログ: { event, expandedMemberId }
   const [poleDialog, setPoleDialog] = useState<{ event: Event } | null>(null)
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null)
+  const [eventRecords, setEventRecords] = useState<EventRecords>(initialEventRecords)
+  const [recordDialog, setRecordDialog] = useState<Event | null>(null)
   const [editDialog, setEditDialog] = useState<Event | null>(null)
   const [editForm, setEditForm] = useState<Omit<Event, 'id'>>({ title: '', date: '', endDate: '', location: '', description: '', poleCarrier: '', entryDeadline: '' })
   const [editSaving, setEditSaving] = useState(false)
@@ -219,6 +223,24 @@ export default function UnifiedCalendar({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, memberId }),
+    })
+  }
+
+  const updateRecord = async (eventId: string, memberId: string, record: string) => {
+    // 楽観的更新
+    setEventRecords(prev => {
+      const next = { ...prev, [eventId]: { ...(prev[eventId] ?? {}) } }
+      if (record.trim() === '') {
+        delete next[eventId][memberId]
+      } else {
+        next[eventId][memberId] = record.trim()
+      }
+      return next
+    })
+    await fetch('/api/event-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, memberId, record }),
     })
   }
 
@@ -742,6 +764,7 @@ export default function UnifiedCalendar({
             const allPoleIds = Object.values(eventPoles[e.id] ?? {}).flat()
             const uniqueSizes = new Set(allPoleIds.map(id => poles.find(p => p.id === id)?.size).filter(Boolean))
             const poleCount = uniqueSizes.size
+            const recordCount = Object.keys(eventRecords[e.id] ?? {}).length
             return (
               <Card
                 key={e.id}
@@ -752,11 +775,18 @@ export default function UnifiedCalendar({
                   <div className="space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="font-semibold text-sm">{e.title}</div>
-                      {poleCount > 0 && (
-                        <Badge variant="outline" className="text-xs shrink-0 text-orange-500 border-orange-300">
-                          ポール選択本数{poleCount}
-                        </Badge>
-                      )}
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        {poleCount > 0 && (
+                          <Badge variant="outline" className="text-xs text-orange-500 border-orange-300">
+                            ポール選択本数{poleCount}
+                          </Badge>
+                        )}
+                        {recordCount > 0 && (
+                          <Badge variant="outline" className="text-xs text-blue-500 border-blue-300">
+                            記録{recordCount}件
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                       <Badge variant="secondary" className="text-xs font-normal">
@@ -787,15 +817,25 @@ export default function UnifiedCalendar({
                     )}
                     <div className="flex items-center justify-between pt-1">
                       <p className="text-xs text-orange-400">タップしてポールを登録</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-muted-foreground"
-                        onClick={ev => { ev.stopPropagation(); openEditDialog(e) }}
-                      >
-                        <Pencil className="h-3 w-3 mr-1" />
-                        編集
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-muted-foreground"
+                          onClick={ev => { ev.stopPropagation(); setRecordDialog(e) }}
+                        >
+                          記録入力
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-muted-foreground"
+                          onClick={ev => { ev.stopPropagation(); openEditDialog(e) }}
+                        >
+                          <Pencil className="h-3 w-3 mr-1" />
+                          編集
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -804,6 +844,51 @@ export default function UnifiedCalendar({
           })
         )}
       </div>
+
+      {/* 記録入力ダイアログ */}
+      <Dialog open={recordDialog !== null} onOpenChange={open => !open && setRecordDialog(null)}>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b">
+            <DialogTitle className="text-base">{recordDialog?.title}</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">参加メンバーの最高跳躍記録を入力してください</p>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 px-4 py-3 space-y-3">
+            {recordDialog && (() => {
+              const attendingIds = eventAttendance[recordDialog.id] ?? []
+              const attendingMembers = members.filter(m => attendingIds.includes(m.id))
+              if (attendingMembers.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    参加登録されているメンバーがいません
+                  </p>
+                )
+              }
+              return attendingMembers.map(member => {
+                const record = eventRecords[recordDialog.id]?.[member.id] ?? ''
+                return (
+                  <div key={member.id} className="space-y-1">
+                    <Label className="text-sm font-medium">
+                      {member.name}
+                      <span className="text-xs text-muted-foreground font-normal ml-2">{gradeLabel(member.grade)}</span>
+                    </Label>
+                    <Input
+                      value={record}
+                      onChange={e => updateRecord(recordDialog.id, member.id, e.target.value)}
+                      placeholder="例：2m10cm"
+                      className="font-mono"
+                    />
+                  </div>
+                )
+              })
+            })()}
+          </div>
+          <div className="px-4 pb-4 pt-3 border-t shrink-0">
+            <Button variant="outline" className="w-full" onClick={() => setRecordDialog(null)}>
+              閉じる
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* 大会編集ダイアログ */}
       <Dialog open={editDialog !== null} onOpenChange={open => !open && setEditDialog(null)}>

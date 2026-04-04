@@ -137,3 +137,14 @@ export async function getEventPoles(): Promise<EventPoles> {
 export async function saveEventPoles(data: EventPoles): Promise<void> {
   return writeStorage('event-poles', data)
 }
+
+// 大会記録: { [eventId]: { [memberId]: string } }  例: "2m10cm"
+export type EventRecords = Record<string, Record<string, string>>
+
+export async function getEventRecords(): Promise<EventRecords> {
+  return readStorage<EventRecords>('event-records', {})
+}
+
+export async function saveEventRecords(data: EventRecords): Promise<void> {
+  return writeStorage('event-records', data)
+}
