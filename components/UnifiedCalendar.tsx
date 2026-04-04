@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance } from '@/lib/data'
+import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, Pole, EventPoles } from '@/lib/data'
 import { gradeLabel } from '@/lib/grade'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,6 +70,8 @@ export default function UnifiedCalendar({
   initialAttendance,
   events: initialEvents,
   initialEventAttendance,
+  poles,
+  initialEventPoles,
   members,
   isAdmin,
 }: {
@@ -77,6 +79,8 @@ export default function UnifiedCalendar({
   initialAttendance: Attendance
   events: Event[]
   initialEventAttendance: EventAttendance
+  poles: Pole[]
+  initialEventPoles: EventPoles
   members: Member[]
   isAdmin: boolean
 }) {
@@ -93,6 +97,10 @@ export default function UnifiedCalendar({
   const [tabMode, setTabMode] = useState<TabMode>('practice')
   const [addForm, setAddForm] = useState<AddForm | null>(null)
   const [addSaving, setAddSaving] = useState(false)
+  const [eventPoles, setEventPoles] = useState<EventPoles>(initialEventPoles)
+  // ポール選択ダイアログ: { event, expandedMemberId }
+  const [poleDialog, setPoleDialog] = useState<{ event: Event } | null>(null)
+  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null)
 
   const prevMonth = () => {
     if (month === 1) { setYear(y => y - 1); setMonth(12) }
@@ -208,6 +216,23 @@ export default function UnifiedCalendar({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, memberId }),
+    })
+  }
+
+  const togglePole = async (eventId: string, memberId: string, poleId: string) => {
+    const current = eventPoles[eventId]?.[memberId] ?? []
+    const next = current.includes(poleId)
+      ? current.filter(id => id !== poleId)
+      : [...current, poleId]
+    // 楽観的更新
+    setEventPoles(prev => ({
+      ...prev,
+      [eventId]: { ...(prev[eventId] ?? {}), [memberId]: next },
+    }))
+    await fetch('/api/event-poles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, memberId, poleIds: next }),
     })
   }
 
@@ -661,32 +686,142 @@ export default function UnifiedCalendar({
         {monthEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">この月の予定はありません</p>
         ) : (
-          monthEvents.map((e) => (
-            <Card key={e.id} className="border-l-4 border-l-orange-400">
-              <CardContent className="py-3 px-4">
-                <div className="space-y-1">
-                  <div className="font-semibold text-sm">{e.title}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-                    <Badge variant="secondary" className="text-xs font-normal">
-                      {formatDate(e.date)}
-                      {e.endDate && e.endDate !== e.date ? ` 〜 ${formatDate(e.endDate)}` : ''}
-                    </Badge>
-                    {e.location && (
-                      <span className="flex items-center gap-0.5">
-                        <MapPin className="h-3 w-3" />
-                        {e.location}
-                      </span>
+          monthEvents.map((e) => {
+            const assignedCount = Object.values(eventPoles[e.id] ?? {}).filter(ids => ids.length > 0).length
+            return (
+              <Card
+                key={e.id}
+                className="border-l-4 border-l-orange-400 cursor-pointer hover:bg-muted/30 transition-colors"
+                onClick={() => { setPoleDialog({ event: e }); setExpandedMemberId(null) }}
+              >
+                <CardContent className="py-3 px-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold text-sm">{e.title}</div>
+                      {assignedCount > 0 && (
+                        <Badge variant="outline" className="text-xs shrink-0 text-orange-500 border-orange-300">
+                          {assignedCount}人登録済
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs font-normal">
+                        {formatDate(e.date)}
+                        {e.endDate && e.endDate !== e.date ? ` 〜 ${formatDate(e.endDate)}` : ''}
+                      </Badge>
+                      {e.location && (
+                        <span className="flex items-center gap-0.5">
+                          <MapPin className="h-3 w-3" />
+                          {e.location}
+                        </span>
+                      )}
+                    </div>
+                    {e.description && (
+                      <p className="text-xs text-muted-foreground">{e.description}</p>
                     )}
+                    <p className="text-xs text-orange-400">タップしてポールを登録</p>
                   </div>
-                  {e.description && (
-                    <p className="text-xs text-muted-foreground">{e.description}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            )
+          })
         )}
       </div>
+
+      {/* ポール割り当てダイアログ */}
+      <Dialog
+        open={poleDialog !== null}
+        onOpenChange={open => { if (!open) { setPoleDialog(null); setExpandedMemberId(null) } }}
+      >
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b">
+            <DialogTitle className="text-base">{poleDialog?.event.title}</DialogTitle>
+            <div className="flex flex-wrap gap-2 items-center mt-1">
+              <Badge variant="secondary" className="text-xs font-normal">
+                {poleDialog && formatDate(poleDialog.event.date)}
+                {poleDialog?.event.endDate && poleDialog.event.endDate !== poleDialog.event.date
+                  ? ` 〜 ${formatDate(poleDialog.event.endDate)}`
+                  : ''}
+              </Badge>
+              {poleDialog?.event.location && (
+                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                  <MapPin className="h-3 w-3" />
+                  {poleDialog.event.location}
+                </span>
+              )}
+            </div>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
+            {members.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">登録されているメンバーがいません</p>
+            ) : members.map(member => {
+              const eventId = poleDialog?.event.id ?? ''
+              const assignedIds = eventPoles[eventId]?.[member.id] ?? []
+              const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
+              const isExpanded = expandedMemberId === member.id
+
+              return (
+                <div key={member.id} className="rounded-xl border overflow-hidden">
+                  {/* メンバー行 */}
+                  <button
+                    className="flex items-center gap-3 w-full text-left px-3 py-3"
+                    onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm">{member.name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 flex-wrap justify-end max-w-[55%]">
+                      {assignedPoles.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">未選択</span>
+                      ) : (
+                        assignedPoles.map(p => (
+                          <Badge key={p.id} variant="secondary" className="font-mono text-xs">{p.size}</Badge>
+                        ))
+                      )}
+                    </div>
+                  </button>
+
+                  {/* ポール選択リスト（展開時） */}
+                  {isExpanded && (
+                    <div className="border-t px-3 py-3 space-y-1.5 bg-muted/20">
+                      <p className="text-xs text-muted-foreground mb-2">使用するポールをタップして選択（複数可）</p>
+                      {poles.map(pole => {
+                        const selected = assignedIds.includes(pole.id)
+                        return (
+                          <button
+                            key={pole.id}
+                            onClick={() => togglePole(eventId, member.id, pole.id)}
+                            className={cn(
+                              'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
+                              selected ? 'border-orange-300 bg-orange-50' : 'bg-background'
+                            )}
+                          >
+                            <div className={cn(
+                              'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                              selected ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
+                            )}>
+                              {selected && <Check className="h-3 w-3 text-white" />}
+                            </div>
+                            <span className="font-mono text-sm font-medium">{pole.size}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="px-4 pb-4 pt-3 border-t shrink-0">
+            <Button variant="outline" className="w-full" onClick={() => { setPoleDialog(null); setExpandedMemberId(null) }}>
+              閉じる
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

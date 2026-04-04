@@ -1,17 +1,19 @@
 export const dynamic = 'force-dynamic'
 
-import { getMembers, getAttendance, getPractices, getLatestMembersYear, getEvents, getEventAttendance } from '@/lib/data'
+import { getMembers, getAttendance, getPractices, getLatestMembersYear, getEvents, getEventAttendance, getPoles, getEventPoles } from '@/lib/data'
 import { getSession } from '@/lib/session'
 import UnifiedCalendar from '@/components/UnifiedCalendar'
 
 export default async function CalendarPage() {
   const [year, session] = await Promise.all([getLatestMembersYear(), getSession()])
-  const [members, practices, attendance, events, eventAttendance] = await Promise.all([
+  const [members, practices, attendance, events, eventAttendance, poles, eventPoles] = await Promise.all([
     getMembers(year),
     getPractices(),
     getAttendance(),
     getEvents(),
     getEventAttendance(),
+    getPoles(),
+    getEventPoles(),
   ])
 
   return (
@@ -23,6 +25,8 @@ export default async function CalendarPage() {
         initialAttendance={attendance}
         events={events}
         initialEventAttendance={eventAttendance}
+        poles={poles}
+        initialEventPoles={eventPoles}
         members={members}
         isAdmin={!!session.isAdmin}
       />

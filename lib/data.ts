@@ -124,3 +124,14 @@ export async function getPoles(): Promise<Poles> {
 export async function savePoles(poles: Poles): Promise<void> {
   return writeStorage('poles', poles)
 }
+
+// 大会別ポール割り当て: { [eventId]: { [memberId]: string[] } }  ← pole ID の配列
+export type EventPoles = Record<string, Record<string, string[]>>
+
+export async function getEventPoles(): Promise<EventPoles> {
+  return readStorage<EventPoles>('event-poles', {})
+}
+
+export async function saveEventPoles(data: EventPoles): Promise<void> {
+  return writeStorage('event-poles', data)
+}
