@@ -71,12 +71,11 @@ export default function AdminDashboard({
 
       {/* タブコンテンツ */}
       <div className="pt-1">
-        {activeTab === 'payment' && (
-          <section className="space-y-2">
-            <p className="text-xs text-gray-500">◯をタップして支払い済みにできます</p>
-            <PaymentTable members={members} payments={payments} insurance={insurance} isAdmin={true} initialYear={initialYear} />
-          </section>
-        )}
+        {/* 月謝管理: アンマウントしないようhiddenで隠す（stateを保持するため） */}
+        <section className={cn('space-y-2', activeTab !== 'payment' && 'hidden')}>
+          <p className="text-xs text-gray-500">◯をタップして支払い済みにできます</p>
+          <PaymentTable members={members} payments={payments} insurance={insurance} isAdmin={true} initialYear={initialYear} />
+        </section>
 
         {activeTab === 'members' && (
           <section>
