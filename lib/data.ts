@@ -101,3 +101,14 @@ export async function getInsurancePayments(): Promise<InsurancePayments> {
 export async function saveInsurancePayments(data: InsurancePayments): Promise<void> {
   return writeStorage('insurance', data)
 }
+
+// 大会参加: { [eventId]: memberId[] }
+export type EventAttendance = Record<string, string[]>
+
+export async function getEventAttendance(): Promise<EventAttendance> {
+  return readStorage<EventAttendance>('event-attendance', {})
+}
+
+export async function saveEventAttendance(data: EventAttendance): Promise<void> {
+  return writeStorage('event-attendance', data)
+}
