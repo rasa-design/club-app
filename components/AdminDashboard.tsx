@@ -39,7 +39,9 @@ export default function AdminDashboard({
   initialYear: number
 }) {
   const [activeTab, setActiveTab] = useState<TabId>('payment')
-  const [eventsState, setEventsState] = useState<Event[]>(events)
+  const [eventsState, setEventsState] = useState<Event[]>(
+    [...events].sort((a, b) => a.date.localeCompare(b.date))
+  )
 
   return (
     <div className="space-y-4">
