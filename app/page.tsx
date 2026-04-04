@@ -59,7 +59,7 @@ export default function Home() {
           alt="Rasa Design"
           width={420}
           height={294}
-          className="w-1/3 h-auto"
+          className="w-1/4 h-auto"
         />
       </div>
     </div>
