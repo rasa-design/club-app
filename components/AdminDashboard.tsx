@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Member, Payments, Practices, InsurancePayments } from '@/lib/data'
+import { Member, Payments, Practices, InsurancePayments, Poles } from '@/lib/data'
 import type { Event } from '@/lib/data'
 import PaymentTable from '@/components/PaymentTable'
 import MemberEditor from '@/components/MemberEditor'
 import PracticeEditor from '@/components/PracticeEditor'
 import AdminCalendarEditor from '@/components/AdminCalendarEditor'
+import PoleEditor from '@/components/PoleEditor'
 import LogoutButton from '@/components/LogoutButton'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'members',   label: 'クラブ生' },
   { id: 'practice',  label: '練習日' },
   { id: 'calendar',  label: '大会行事' },
+  { id: 'poles',     label: 'ポール' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
@@ -25,6 +27,7 @@ export default function AdminDashboard({
   insurance,
   events,
   practices,
+  poles,
   initialYear,
 }: {
   members: Member[]
@@ -32,6 +35,7 @@ export default function AdminDashboard({
   insurance: InsurancePayments
   events: Event[]
   practices: Practices
+  poles: Poles
   initialYear: number
 }) {
   const [activeTab, setActiveTab] = useState<TabId>('payment')
@@ -86,6 +90,12 @@ export default function AdminDashboard({
         {activeTab === 'calendar' && (
           <section>
             <AdminCalendarEditor initialEvents={events} />
+          </section>
+        )}
+
+        {activeTab === 'poles' && (
+          <section>
+            <PoleEditor initialPoles={poles} />
           </section>
         )}
       </div>
