@@ -141,12 +141,14 @@ export default function UnifiedCalendar({
     if (hasPractice) {
       const defaultStart = slots[0]?.start ?? '09:00'
       const defaultEnd = slots[0]?.end ?? '12:00'
+      const dateAttendance = attendance[date]
+      const hasBeenSaved = dateAttendance !== undefined
       const state: PracticeState = {}
       for (const member of members) {
-        const existing = attendance[date]?.[member.id]
+        const existing = dateAttendance?.[member.id]
         state[member.id] = existing
           ? { attended: true, start: existing.start, end: existing.end }
-          : { attended: true, start: defaultStart, end: defaultEnd }
+          : { attended: !hasBeenSaved, start: defaultStart, end: defaultEnd }
       }
       setPracticeState(state)
     }
