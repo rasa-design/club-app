@@ -55,7 +55,7 @@ export default function Home() {
       <div className="flex justify-center pt-2 pb-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/RasaDesignLogo.png"
+          src="/RasaDesignLogo.svg"
           alt="Rasa Design"
           className="w-1/3"
         />
