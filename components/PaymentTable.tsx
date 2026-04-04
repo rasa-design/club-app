@@ -84,7 +84,6 @@ export default function PaymentTable({
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [payments, setPayments] = useState<Payments>(initialPayments)
   const [insurance, setInsurance] = useState<InsurancePayments>(initialInsurance)
-  const [loading, setLoading] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<SortOrder>('grade')
   const [mode, setMode] = useState<Mode>('monthly')
   const isFirstRender = useRef(true)
@@ -107,25 +106,36 @@ export default function PaymentTable({
     const ym = toYearMonth(year, month)
     const current = payments[memberId]?.[ym]
     const status = nextStatus(current)
-    const key = `${memberId}-${ym}`
-    setLoading(key)
+
+    // 楽観的更新：先にUIを更新
+    const newValue = status === 'paid' ? true : status === 'withdrawn' ? '退会' : undefined
+    setPayments((prev) => {
+      const next = { ...prev, [memberId]: { ...(prev[memberId] ?? {}) } }
+      if (newValue === undefined) {
+        delete next[memberId][ym]
+      } else {
+        next[memberId][ym] = newValue
+      }
+      return next
+    })
+
     const res = await fetch('/api/payments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ memberId, yearMonth: ym, status }),
     })
-    if (res.ok) {
+    // 失敗時は元に戻す
+    if (!res.ok) {
       setPayments((prev) => {
         const next = { ...prev, [memberId]: { ...(prev[memberId] ?? {}) } }
-        if (status === 'clear') {
+        if (current === undefined) {
           delete next[memberId][ym]
         } else {
-          next[memberId][ym] = status === 'paid' ? true : '退会'
+          next[memberId][ym] = current
         }
         return next
       })
     }
-    setLoading(null)
   }
 
   const toggleInsurance = async (memberId: string) => {
@@ -133,33 +143,38 @@ export default function PaymentTable({
     const yearKey = String(schoolYear)
     const current = insurance[memberId]?.[yearKey]
     const status = nextInsuranceStatus(current)
-    const key = `insurance-${memberId}-${yearKey}`
-    setLoading(key)
     const today = new Date()
+    const paidMonth = today.getMonth() + 1
+
+    // 楽観的更新：先にUIを更新
+    const newValue = status === 'paid' ? paidMonth : status === 'withdrawn' ? '退会' : undefined
+    setInsurance((prev) => {
+      const next = { ...prev, [memberId]: { ...(prev[memberId] ?? {}) } }
+      if (newValue === undefined) {
+        delete next[memberId][yearKey]
+      } else {
+        next[memberId][yearKey] = newValue
+      }
+      return next
+    })
+
     const res = await fetch('/api/insurance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        memberId,
-        schoolYear: yearKey,
-        status,
-        month: today.getMonth() + 1,
-      }),
+      body: JSON.stringify({ memberId, schoolYear: yearKey, status, month: paidMonth }),
     })
-    if (res.ok) {
+    // 失敗時は元に戻す
+    if (!res.ok) {
       setInsurance((prev) => {
         const next = { ...prev, [memberId]: { ...(prev[memberId] ?? {}) } }
-        if (status === 'clear') {
+        if (current === undefined) {
           delete next[memberId][yearKey]
-        } else if (status === 'paid') {
-          next[memberId][yearKey] = today.getMonth() + 1
         } else {
-          next[memberId][yearKey] = '退会'
+          next[memberId][yearKey] = current
         }
         return next
       })
     }
-    setLoading(null)
   }
 
   return (
@@ -274,7 +289,6 @@ export default function PaymentTable({
                       {months.map((m) => {
                         const ym = toYearMonth(m.year, m.month)
                         const status = payments[member.id]?.[ym]
-                        const key = `${member.id}-${ym}`
                         const isPaid = status === true
                         const isWithdrawn = status === '退会'
                         return (
@@ -293,7 +307,7 @@ export default function PaymentTable({
                                       : 'text-sm cursor-default text-muted'
                               )}
                               onClick={() => toggle(member.id, m.year, m.month)}
-                              disabled={!isAdmin || loading === key}
+                              disabled={!isAdmin}
                             >
                               {isPaid ? '○' : isWithdrawn ? '退会' : '−'}
                             </Button>
@@ -340,7 +354,6 @@ export default function PaymentTable({
                   sortedMembers.map((member) => {
                     const yearKey = String(schoolYear)
                     const status = insurance[member.id]?.[yearKey]
-                    const key = `insurance-${member.id}-${yearKey}`
                     const isPaid = typeof status === 'number'
                     const isWithdrawn = status === '退会'
                     return (
@@ -365,7 +378,7 @@ export default function PaymentTable({
                                     : 'cursor-default text-muted'
                             )}
                             onClick={() => toggleInsurance(member.id)}
-                            disabled={!isAdmin || loading === key}
+                            disabled={!isAdmin}
                           >
                             {isPaid ? `○ ${status}月` : isWithdrawn ? '退会' : '−'}
                           </Button>
