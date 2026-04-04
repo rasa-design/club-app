@@ -88,3 +88,16 @@ export async function getAttendance(): Promise<Attendance> {
 export async function saveAttendance(attendance: Attendance): Promise<void> {
   return writeStorage('attendance', attendance)
 }
+
+// 保険料: { [memberId]: { [schoolYear]: number | '退会' } }
+// number = 支払月 (1〜12)
+export type InsurancePaidStatus = number | '退会'
+export type InsurancePayments = Record<string, Record<string, InsurancePaidStatus>>
+
+export async function getInsurancePayments(): Promise<InsurancePayments> {
+  return readStorage<InsurancePayments>('insurance', {})
+}
+
+export async function saveInsurancePayments(data: InsurancePayments): Promise<void> {
+  return writeStorage('insurance', data)
+}

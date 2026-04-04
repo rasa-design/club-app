@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
-import { getMembers, getPayments, getEvents, getPractices, getLatestMembersYear } from '@/lib/data'
+import { getMembers, getPayments, getEvents, getPractices, getInsurancePayments, getLatestMembersYear } from '@/lib/data'
 import AdminDashboard from '@/components/AdminDashboard'
 
 export default async function DashboardPage() {
@@ -8,17 +8,19 @@ export default async function DashboardPage() {
   if (!session.isAdmin) redirect('/admin')
 
   const year = await getLatestMembersYear()
-  const [members, payments, events, practices] = await Promise.all([
+  const [members, payments, events, practices, insurance] = await Promise.all([
     getMembers(year),
     getPayments(),
     getEvents(),
     getPractices(),
+    getInsurancePayments(),
   ])
 
   return (
     <AdminDashboard
       members={members}
       payments={payments}
+      insurance={insurance}
       events={events}
       practices={practices}
       initialYear={year}

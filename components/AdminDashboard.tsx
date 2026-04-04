@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Member, Payments, Practices } from '@/lib/data'
+import { Member, Payments, Practices, InsurancePayments } from '@/lib/data'
 import type { Event } from '@/lib/data'
 import PaymentTable from '@/components/PaymentTable'
 import MemberEditor from '@/components/MemberEditor'
@@ -22,12 +22,14 @@ type TabId = typeof TABS[number]['id']
 export default function AdminDashboard({
   members,
   payments,
+  insurance,
   events,
   practices,
   initialYear,
 }: {
   members: Member[]
   payments: Payments
+  insurance: InsurancePayments
   events: Event[]
   practices: Practices
   initialYear: number
@@ -65,7 +67,7 @@ export default function AdminDashboard({
         {activeTab === 'payment' && (
           <section className="space-y-2">
             <p className="text-xs text-gray-500">◯をタップして支払い済みにできます</p>
-            <PaymentTable members={members} payments={payments} isAdmin={true} initialYear={initialYear} />
+            <PaymentTable members={members} payments={payments} insurance={insurance} isAdmin={true} initialYear={initialYear} />
           </section>
         )}
 
