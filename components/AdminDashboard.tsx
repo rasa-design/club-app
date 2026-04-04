@@ -15,7 +15,7 @@ const TABS = [
   { id: 'payment',   label: '月謝管理' },
   { id: 'members',   label: 'クラブ生' },
   { id: 'practice',  label: '練習日' },
-  { id: 'calendar',  label: '大会行事' },
+  { id: 'calendar',  label: '大会' },
   { id: 'poles',     label: 'ポール' },
 ] as const
 
@@ -39,6 +39,7 @@ export default function AdminDashboard({
   initialYear: number
 }) {
   const [activeTab, setActiveTab] = useState<TabId>('payment')
+  const [eventsState, setEventsState] = useState<Event[]>(events)
 
   return (
     <div className="space-y-4">
@@ -89,7 +90,7 @@ export default function AdminDashboard({
 
         {activeTab === 'calendar' && (
           <section>
-            <AdminCalendarEditor initialEvents={events} />
+            <AdminCalendarEditor events={eventsState} setEvents={setEventsState} />
           </section>
         )}
 

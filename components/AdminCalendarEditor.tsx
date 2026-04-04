@@ -37,10 +37,7 @@ function formatDate(dateStr: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}(${['日', '月', '火', '水', '木', '金', '土'][d.getDay()]})`
 }
 
-export default function AdminCalendarEditor({ initialEvents }: { initialEvents: Event[] }) {
-  const [events, setEvents] = useState<Event[]>(
-    initialEvents.sort((a, b) => a.date.localeCompare(b.date))
-  )
+export default function AdminCalendarEditor({ events, setEvents }: { events: Event[]; setEvents: React.Dispatch<React.SetStateAction<Event[]>> }) {
   const [adding, setAdding] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm())

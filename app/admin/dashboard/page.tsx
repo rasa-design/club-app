@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { getMembers, getPayments, getEvents, getPractices, getInsurancePayments, getPoles, getLatestMembersYear } from '@/lib/data'
