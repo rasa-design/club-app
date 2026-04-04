@@ -407,7 +407,6 @@ export default function UnifiedCalendar({
           const dayEvents = getEventsOnDate(events, date)
           const hasEvent = dayEvents.length > 0
           const isToday = date === todayStr
-          const attendCount = Object.keys(attendance[date] ?? {}).length
           const tappable = hasPractice || hasEvent || isAdmin
 
           return (
@@ -434,11 +433,6 @@ export default function UnifiedCalendar({
                 {hasPractice && <span className="w-1.5 h-1.5 rounded-full bg-[#3BBFAD]" />}
                 {hasEvent && <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
               </div>
-              {hasPractice && attendCount > 0 && (
-                <span className="text-[9px] text-[#3BBFAD] font-medium leading-none">
-                  {attendCount}人
-                </span>
-              )}
             </button>
           )
         })}
