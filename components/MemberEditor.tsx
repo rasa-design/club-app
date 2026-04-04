@@ -39,6 +39,7 @@ export default function MemberEditor() {
   const [name, setName] = useState('')
   const [grade, setGrade] = useState('7')
   const [saving, setSaving] = useState(false)
+  const [addError, setAddError] = useState('')
   const [copying, setCopying] = useState(false)
   const [copyError, setCopyError] = useState('')
 
@@ -55,15 +56,23 @@ export default function MemberEditor() {
   const add = async () => {
     if (!name.trim()) return
     setSaving(true)
-    const res = await fetch('/api/members', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), grade: Number(grade), year }),
-    })
-    if (res.ok) {
-      const m: Member = await res.json()
-      setMembers((prev) => [...prev, m])
-      setName('')
+    setAddError('')
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), grade: Number(grade), year }),
+      })
+      if (res.ok) {
+        const m: Member = await res.json()
+        setMembers((prev) => [...prev, m])
+        setName('')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setAddError(data.error ?? `エラーが発生しました（${res.status}）`)
+      }
+    } catch {
+      setAddError('通信エラーが発生しました')
     }
     setSaving(false)
   }
@@ -224,6 +233,7 @@ export default function MemberEditor() {
               </Button>
             </CardContent>
           </Card>
+          {addError && <p className="text-sm text-destructive">{addError}</p>}
         </>
       )}
     </div>
