@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import HeroAnimatedTextLoader from '@/components/HeroAnimatedTextLoader'
 import { CalendarCheck2, Lock, Heart, Users, Dumbbell } from 'lucide-react'
@@ -53,11 +54,12 @@ export default function Home() {
 
       {/* フッターロゴ */}
       <div className="flex justify-center pt-2 pb-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src="/RasaDesignLogo.svg"
           alt="Rasa Design"
-          className="w-1/3"
+          width={420}
+          height={294}
+          className="w-1/3 h-auto"
         />
       </div>
     </div>
