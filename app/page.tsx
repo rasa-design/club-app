@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import HeroAnimatedTextLoader from '@/components/HeroAnimatedTextLoader'
-import { CalendarCheck2, Lock, Heart, Users } from 'lucide-react'
+import { CalendarCheck2, Lock, Heart, Users, Dumbbell } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 const menuItems: { href: string; icon: LucideIcon; iconColor: string; label: string; desc: string; full?: boolean }[] = [
   { href: '/payments', icon: CalendarCheck2, iconColor: '#3BBFAD', label: '練習日/大会カレンダー', desc: '日程の確認と参加登録' },
   { href: '/mindset',  icon: Heart,          iconColor: '#E85FA0', label: 'マインドセット',         desc: '本番で力を発揮するために' },
   { href: '/members',  icon: Users,          iconColor: '#7C5CBF', label: 'クラブ生一覧',           desc: '在籍メンバーを確認' },
+  { href: '/poles',    icon: Dumbbell,       iconColor: '#4B7BEC', label: 'ポール一覧',             desc: 'クラブ保有ポールを確認' },
   { href: '/admin',    icon: Lock,           iconColor: '#F7D33E', label: '管理者メニュー',         desc: '※コーチ・会計係専用', full: true },
 ]
 

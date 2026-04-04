@@ -112,3 +112,15 @@ export async function getEventAttendance(): Promise<EventAttendance> {
 export async function saveEventAttendance(data: EventAttendance): Promise<void> {
   return writeStorage('event-attendance', data)
 }
+
+// ポール: [{ id, size }]
+export type Pole = { id: string; size: string }
+export type Poles = Pole[]
+
+export async function getPoles(): Promise<Poles> {
+  return readStorage<Poles>('poles', [])
+}
+
+export async function savePoles(poles: Poles): Promise<void> {
+  return writeStorage('poles', poles)
+}

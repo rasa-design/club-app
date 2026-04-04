@@ -12,6 +12,7 @@ import paymentsData from '@/data/payments.json'
 import practicesData from '@/data/practices.json'
 import insuranceData from '@/data/insurance.json'
 import eventAttendanceData from '@/data/event-attendance.json'
+import polesData from '@/data/poles.json'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
       writeStorage('practices', practicesData),
       writeStorage('insurance', insuranceData),
       writeStorage('event-attendance', eventAttendanceData),
+      writeStorage('poles', polesData),
       writeStorage('attendance', {}),
     ])
   }
