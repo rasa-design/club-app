@@ -71,7 +71,7 @@ export default function PracticeCalendar({
       const existing = attendance[date]?.[member.id]
       state[member.id] = existing
         ? { attended: true, start: existing.start, end: existing.end }
-        : { attended: false, start: defaultStart, end: defaultEnd }
+        : { attended: true, start: defaultStart, end: defaultEnd }
     }
     setAttendanceState(state)
     setSelectedDate(date)
