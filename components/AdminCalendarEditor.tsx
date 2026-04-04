@@ -239,16 +239,16 @@ function EventForm({
         <Input value={form.location} onChange={update('location')} />
       </div>
       <div className="space-y-1">
-        <Label>メモ</Label>
-        <Input value={form.description} onChange={update('description')} />
-      </div>
-      <div className="space-y-1">
         <Label>申し込み締め切り日</Label>
         <DatePicker value={form.entryDeadline ?? ''} onChange={setField('entryDeadline')} placeholder="締め切り日" />
       </div>
       <div className="space-y-1">
         <Label>ポール運搬担当者</Label>
         <Input value={form.poleCarrier ?? ''} onChange={update('poleCarrier')} placeholder="例：山田さん" />
+      </div>
+      <div className="space-y-1">
+        <Label>メモ</Label>
+        <Input value={form.description} onChange={update('description')} />
       </div>
       <div className="flex gap-2 pt-1">
         <Button onClick={onSave} disabled={saving || !form.title || !form.date} className="flex-1">

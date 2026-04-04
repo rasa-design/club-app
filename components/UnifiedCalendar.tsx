@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
@@ -101,6 +101,9 @@ export default function UnifiedCalendar({
   // ポール選択ダイアログ: { event, expandedMemberId }
   const [poleDialog, setPoleDialog] = useState<{ event: Event } | null>(null)
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null)
+  const [editDialog, setEditDialog] = useState<Event | null>(null)
+  const [editForm, setEditForm] = useState<Omit<Event, 'id'>>({ title: '', date: '', endDate: '', location: '', description: '', poleCarrier: '', entryDeadline: '' })
+  const [editSaving, setEditSaving] = useState(false)
 
   const prevMonth = () => {
     if (month === 1) { setYear(y => y - 1); setMonth(12) }
@@ -217,6 +220,27 @@ export default function UnifiedCalendar({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, memberId }),
     })
+  }
+
+  const openEditDialog = (event: Event) => {
+    setEditDialog(event)
+    setEditForm({ title: event.title, date: event.date, endDate: event.endDate, location: event.location, description: event.description, poleCarrier: event.poleCarrier ?? '', entryDeadline: event.entryDeadline ?? '' })
+  }
+
+  const saveEditEvent = async () => {
+    if (!editDialog || !editForm.title || !editForm.date) return
+    setEditSaving(true)
+    const updated = { ...editForm, id: editDialog.id }
+    const res = await fetch('/api/events', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    })
+    if (res.ok) {
+      setEvents(prev => prev.map(e => e.id === editDialog.id ? updated : e))
+      setEditDialog(null)
+    }
+    setEditSaving(false)
   }
 
   const togglePole = async (eventId: string, memberId: string, poleId: string) => {
@@ -628,13 +652,6 @@ export default function UnifiedCalendar({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">メモ</Label>
-                      <Input
-                        value={addForm.description}
-                        onChange={e => setAddForm(f => f ? { ...f, description: e.target.value } : f)}
-                      />
-                    </div>
-                    <div className="space-y-1">
                       <Label className="text-xs">申し込み締め切り日</Label>
                       <DatePicker
                         value={addForm.entryDeadline ?? ''}
@@ -648,6 +665,13 @@ export default function UnifiedCalendar({
                         value={addForm.poleCarrier ?? ''}
                         onChange={e => setAddForm(f => f ? { ...f, poleCarrier: e.target.value } : f)}
                         placeholder="例：山田さん"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">メモ</Label>
+                      <Input
+                        value={addForm.description}
+                        onChange={e => setAddForm(f => f ? { ...f, description: e.target.value } : f)}
                       />
                     </div>
                     <div className="flex gap-2">
@@ -761,7 +785,18 @@ export default function UnifiedCalendar({
                     {e.description && (
                       <p className="text-xs text-muted-foreground">{e.description}</p>
                     )}
-                    <p className="text-xs text-orange-400">タップしてポールを登録</p>
+                    <div className="flex items-center justify-between pt-1">
+                      <p className="text-xs text-orange-400">タップしてポールを登録</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-muted-foreground"
+                        onClick={ev => { ev.stopPropagation(); openEditDialog(e) }}
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        編集
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -769,6 +804,73 @@ export default function UnifiedCalendar({
           })
         )}
       </div>
+
+      {/* 大会編集ダイアログ */}
+      <Dialog open={editDialog !== null} onOpenChange={open => !open && setEditDialog(null)}>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b">
+            <DialogTitle className="text-base">大会・行事を編集</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 px-4 py-3 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">タイトル <span className="text-destructive">*</span></Label>
+              <Input
+                value={editForm.title}
+                onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">開始日 <span className="text-destructive">*</span></Label>
+                <DatePicker value={editForm.date} onChange={v => setEditForm(f => ({ ...f, date: v }))} placeholder="開始日" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">終了日</Label>
+                <DatePicker value={editForm.endDate} onChange={v => setEditForm(f => ({ ...f, endDate: v }))} placeholder="終了日" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">場所</Label>
+              <Input
+                value={editForm.location}
+                onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
+                placeholder="例：市立体育館"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">申し込み締め切り日</Label>
+              <DatePicker value={editForm.entryDeadline ?? ''} onChange={v => setEditForm(f => ({ ...f, entryDeadline: v }))} placeholder="締め切り日" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">ポール運搬担当者</Label>
+              <Input
+                value={editForm.poleCarrier ?? ''}
+                onChange={e => setEditForm(f => ({ ...f, poleCarrier: e.target.value }))}
+                placeholder="例：山田さん"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">メモ</Label>
+              <Input
+                value={editForm.description}
+                onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="px-4 pb-4 pt-3 border-t shrink-0 flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setEditDialog(null)}>
+              キャンセル
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={saveEditEvent}
+              disabled={editSaving || !editForm.title || !editForm.date}
+            >
+              {editSaving ? '保存中...' : '保存する'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ポール割り当てダイアログ */}
       <Dialog

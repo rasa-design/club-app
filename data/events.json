@@ -70,5 +70,15 @@
     "location": "多治見",
     "description": "ポール運搬山田さん　締め切り",
     "id": "1775270232046"
+  },
+  {
+    "title": "テスト大会",
+    "date": "2026-04-08",
+    "endDate": "2026-04-08",
+    "location": "長良川",
+    "description": "",
+    "entryDeadline": "2026-03-30",
+    "poleCarrier": "河合",
+    "id": "1775274458428"
   }
 ]
