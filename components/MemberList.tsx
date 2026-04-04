@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Member } from '@/lib/data'
-import { gradeLabel, currentSchoolYear } from '@/lib/grade'
+import { gradeLabel } from '@/lib/grade'
 import {
   Select,
   SelectContent,
@@ -21,11 +21,6 @@ function sortMembers(members: Member[], order: SortOrder): Member[] {
   )
 }
 
-function getSelectableYears(): number[] {
-  const cur = currentSchoolYear()
-  return [cur - 2, cur - 1, cur, cur + 1, cur + 2]
-}
-
 export default function MemberList({
   members: initialMembers,
   initialYear,
@@ -36,7 +31,14 @@ export default function MemberList({
   const [schoolYear, setSchoolYear] = useState(initialYear)
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [sortOrder, setSortOrder] = useState<SortOrder>('grade')
+  const [selectableYears, setSelectableYears] = useState<number[]>([initialYear])
   const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    fetch('/api/members/years')
+      .then(r => r.json())
+      .then((years: number[]) => setSelectableYears(years))
+  }, [])
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
@@ -55,13 +57,13 @@ export default function MemberList({
           value={String(schoolYear)}
           onValueChange={v => setSchoolYear(Number(v))}
         >
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="flex-1 min-w-0">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="w-44">
-            {getSelectableYears().map(y => (
+          <SelectContent>
+            {selectableYears.map(y => (
               <SelectItem key={y} value={String(y)}>
-                {y}年度
+                {y}年度（{y}/4〜{y + 1}/3）
               </SelectItem>
             ))}
           </SelectContent>

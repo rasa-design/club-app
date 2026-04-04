@@ -47,10 +47,6 @@ function toYearMonth(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, '0')}`
 }
 
-function getSelectableYears(): number[] {
-  const cur = currentSchoolYear()
-  return [cur - 2, cur - 1, cur, cur + 1, cur + 2]
-}
 
 // 3段階トグル: undefined → paid → 退会 → undefined
 function nextStatus(current: PaymentStatus | undefined): 'paid' | 'withdrawn' | 'clear' {
@@ -86,7 +82,14 @@ export default function PaymentTable({
   const [insurance, setInsurance] = useState<InsurancePayments>(initialInsurance)
   const [sortOrder, setSortOrder] = useState<SortOrder>('grade')
   const [mode, setMode] = useState<Mode>('monthly')
+  const [selectableYears, setSelectableYears] = useState<number[]>([currentSchoolYear()])
   const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    fetch('/api/members/years')
+      .then(r => r.json())
+      .then((years: number[]) => setSelectableYears(years))
+  }, [])
 
   const sortedMembers = sortMembers(members, sortOrder)
 
@@ -211,11 +214,11 @@ export default function PaymentTable({
           value={String(schoolYear)}
           onValueChange={(v) => v !== null && setSchoolYear(Number(v))}
         >
-          <SelectTrigger className="w-32 text-xs">
-            <span>{schoolYear}年度</span>
+          <SelectTrigger className="flex-1 min-w-0 text-xs">
+            <span>{schoolYear}年度（{schoolYear}/4〜{schoolYear + 1}/3）</span>
           </SelectTrigger>
-          <SelectContent className="w-52">
-            {getSelectableYears().map((y) => (
+          <SelectContent className="w-full">
+            {selectableYears.map((y) => (
               <SelectItem key={y} value={String(y)}>
                 {y}年度（{y}/4〜{y + 1}/3）
               </SelectItem>

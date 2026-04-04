@@ -45,7 +45,6 @@ function groupPoles(poles: Pole[]): { size: string; poles: Pole[] }[] {
 export default function PoleEditor({ initialPoles }: { initialPoles: Pole[] }) {
   const [poles, setPoles] = useState<Pole[]>(initialPoles)
   const [size, setSize] = useState('')
-  const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -65,7 +64,6 @@ export default function PoleEditor({ initialPoles }: { initialPoles: Pole[] }) {
         const pole: Pole = await res.json()
         setPoles(prev => [...prev, pole])
         setSize('')
-        setAdding(false)
       } else {
         setError('追加に失敗しました')
       }
@@ -86,53 +84,33 @@ export default function PoleEditor({ initialPoles }: { initialPoles: Pole[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          計 <span className="font-semibold text-foreground">{poles.length}</span> 本
-          （<span className="font-semibold text-foreground">{groups.length}</span> サイズ）
-        </p>
-        {!adding && (
-          <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            追加
-          </Button>
-        )}
+      {/* 追加フォーム */}
+      <div className="rounded-xl border p-4 space-y-3">
+        <p className="text-sm font-semibold">ポールを追加</p>
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">サイズ（例：11.2-80）</p>
+          <Input
+            value={size}
+            onChange={e => setSize(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && add()}
+            placeholder="11.2-80"
+          />
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button
+          className="w-full"
+          onClick={add}
+          disabled={saving || !size.trim()}
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          {saving ? '追加中...' : '追加する'}
+        </Button>
       </div>
 
-      {/* 追加フォーム */}
-      {adding && (
-        <div className="rounded-xl border p-4 space-y-3">
-          <p className="text-sm font-medium">ポールを追加</p>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">サイズ（例：11.2-80）</p>
-            <Input
-              value={size}
-              onChange={e => setSize(e.target.value)}
-              placeholder="11.2-80"
-              autoFocus
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => { setAdding(false); setSize(''); setError('') }}
-            >
-              キャンセル
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1"
-              onClick={add}
-              disabled={saving || !size.trim()}
-            >
-              {saving ? '追加中...' : '追加する'}
-            </Button>
-          </div>
-        </div>
-      )}
+      <p className="text-sm text-muted-foreground">
+        計 <span className="font-semibold text-foreground">{poles.length}</span> 本
+        （<span className="font-semibold text-foreground">{groups.length}</span> サイズ）
+      </p>
 
       {/* サイズ別一覧 */}
       {groups.length === 0 ? (

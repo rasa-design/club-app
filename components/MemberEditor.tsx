@@ -27,13 +27,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Trash2, UserPlus, Copy } from 'lucide-react'
 
-function getSelectableYears(): number[] {
-  const cur = currentSchoolYear()
-  return [cur - 2, cur - 1, cur, cur + 1, cur + 2]
-}
-
 export default function MemberEditor() {
   const [year, setYear] = useState(currentSchoolYear())
+  const [selectableYears, setSelectableYears] = useState<number[]>([currentSchoolYear(), currentSchoolYear() + 1])
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
@@ -42,6 +38,13 @@ export default function MemberEditor() {
   const [addError, setAddError] = useState('')
   const [copying, setCopying] = useState(false)
   const [copyError, setCopyError] = useState('')
+
+  // 年度一覧を取得
+  useEffect(() => {
+    fetch('/api/members/years')
+      .then((r) => r.json())
+      .then((years: number[]) => setSelectableYears(years))
+  }, [])
 
   useEffect(() => {
     setLoading(true)
@@ -97,6 +100,10 @@ export default function MemberEditor() {
     const data = await res.json()
     if (res.ok) {
       setMembers(data)
+      // 年度一覧を再取得（新年度が追加されたため）
+      fetch('/api/members/years')
+        .then((r) => r.json())
+        .then((years: number[]) => setSelectableYears(years))
     } else {
       setCopyError(data.error ?? 'コピーに失敗しました')
     }
@@ -107,7 +114,7 @@ export default function MemberEditor() {
     <div className="space-y-3">
       {/* 年度セレクター */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">年度</span>
+        <span className="text-sm text-muted-foreground shrink-0">年度</span>
         <Select
           value={String(year)}
           onValueChange={(v) => {
@@ -117,11 +124,11 @@ export default function MemberEditor() {
             }
           }}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {getSelectableYears().map((y) => (
+            {selectableYears.map((y) => (
               <SelectItem key={y} value={String(y)}>
                 {y}年度（{y}/4〜{y + 1}/3）
               </SelectItem>
@@ -141,7 +148,7 @@ export default function MemberEditor() {
               <AlertDialog>
                 <AlertDialogTrigger
                   render={
-                    <Button variant="outline" size="sm" disabled={copying} />
+                    <Button variant="outline" disabled={copying} />
                   }
                 >
                   <Copy className="h-4 w-4 mr-1.5" />
@@ -227,7 +234,7 @@ export default function MemberEditor() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={add} disabled={saving || !name.trim()} size="sm">
+              <Button onClick={add} disabled={saving || !name.trim()}>
                 <UserPlus className="h-4 w-4 mr-1" />
                 追加
               </Button>

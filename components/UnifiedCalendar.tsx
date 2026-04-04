@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, Pole, EventPoles, EventRecords } from '@/lib/data'
 import { gradeLabel } from '@/lib/grade'
+import { toHalfWidth, parseRecord, formatRecord } from '@/lib/record'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,6 +31,7 @@ import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, Ca
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
+
 
 function toDateStr(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -105,6 +107,12 @@ export default function UnifiedCalendar({
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null)
   const [eventRecords, setEventRecords] = useState<EventRecords>(initialEventRecords)
   const [recordDialog, setRecordDialog] = useState<Event | null>(null)
+  // 記録入力の一時state: { [memberId]: { m: string; cm: string } }
+  const [recordInputs, setRecordInputs] = useState<Record<string, { m: string; cm: string }>>({})
+
+  // 参加チェック後のポール登録誘導確認: { event }
+  const [polePrompt, setPolePrompt] = useState<{ event: Event } | null>(null)
+
   const [editDialog, setEditDialog] = useState<Event | null>(null)
   const [editForm, setEditForm] = useState<Omit<Event, 'id'>>({ title: '', date: '', endDate: '', location: '', description: '', poleCarrier: '', entryDeadline: '' })
   const [editSaving, setEditSaving] = useState(false)
@@ -212,12 +220,34 @@ export default function UnifiedCalendar({
   }
 
   const toggleEventMember = async (eventId: string, memberId: string) => {
+    const isCurrentlyAttending = (eventAttendance[eventId] ?? []).includes(memberId)
     setEventAttendance(prev => {
       const current = prev[eventId] ?? []
       const next = current.includes(memberId)
         ? current.filter(id => id !== memberId)
         : [...current, memberId]
       return { ...prev, [eventId]: next }
+    })
+    await fetch('/api/event-attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, memberId }),
+    })
+    // チェックON（追加）のときポール登録を促す
+    if (!isCurrentlyAttending) {
+      const event = events.find(e => e.id === eventId)
+      if (event) setPolePrompt({ event })
+    }
+  }
+
+  // ポール選択時の自動参加登録用（追加のみ、削除しない）
+  const addEventMember = async (eventId: string, memberId: string) => {
+    const isAlreadyAttending = (eventAttendance[eventId] ?? []).includes(memberId)
+    if (isAlreadyAttending) return
+    setEventAttendance(prev => {
+      const current = prev[eventId] ?? []
+      if (current.includes(memberId)) return prev
+      return { ...prev, [eventId]: [...current, memberId] }
     })
     await fetch('/api/event-attendance', {
       method: 'POST',
@@ -267,9 +297,10 @@ export default function UnifiedCalendar({
 
   const togglePole = async (eventId: string, memberId: string, poleId: string) => {
     const current = eventPoles[eventId]?.[memberId] ?? []
-    const next = current.includes(poleId)
-      ? current.filter(id => id !== poleId)
-      : [...current, poleId]
+    const isAdding = !current.includes(poleId)
+    const next = isAdding
+      ? [...current, poleId]
+      : current.filter(id => id !== poleId)
     // 楽観的更新
     setEventPoles(prev => ({
       ...prev,
@@ -280,6 +311,10 @@ export default function UnifiedCalendar({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, memberId, poleIds: next }),
     })
+    // ポール追加時、未参加なら自動で参加登録
+    if (isAdding) {
+      await addEventMember(eventId, memberId)
+    }
   }
 
   const deleteEvent = async (eventId: string) => {
@@ -417,7 +452,7 @@ export default function UnifiedCalendar({
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
-          大会・行事
+          大会
         </span>
       </div>
 
@@ -448,7 +483,7 @@ export default function UnifiedCalendar({
                     tabMode === 'event' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground'
                   )}
                 >
-                  大会・行事
+                  大会
                 </button>
               </div>
             )}
@@ -622,22 +657,21 @@ export default function UnifiedCalendar({
                   )
                 })}
 
-                {/* 管理者：行事追加 */}
-                {isAdmin && !addForm && (
+                {/* 管理者：大会追加（この日に大会がない場合のみ） */}
+                {isAdmin && selectedEvents.length === 0 && !addForm && (
                   <Button
                     variant="outline"
-                    size="sm"
                     className="w-full"
                     onClick={startAddForm}
                   >
                     <Plus className="h-4 w-4 mr-1.5" />
-                    行事を追加
+                    大会を追加
                   </Button>
                 )}
 
                 {isAdmin && addForm && (
                   <div className="rounded-xl border p-4 space-y-3">
-                    <p className="text-sm font-medium">行事を追加</p>
+                    <p className="text-sm font-medium">大会を追加</p>
                     <div className="space-y-1">
                       <Label className="text-xs">タイトル <span className="text-destructive">*</span></Label>
                       <Input
@@ -697,11 +731,10 @@ export default function UnifiedCalendar({
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setAddForm(null)}>
+                      <Button variant="outline" className="flex-1" onClick={() => setAddForm(null)}>
                         キャンセル
                       </Button>
                       <Button
-                        size="sm"
                         className="flex-1"
                         onClick={saveEvent}
                         disabled={addSaving || !addForm.title}
@@ -714,7 +747,7 @@ export default function UnifiedCalendar({
 
                 {selectedEvents.length === 0 && !addForm && !isAdmin && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    この日の大会・行事はありません
+                    この日の大会はありません
                   </p>
                 )}
               </div>
@@ -733,30 +766,30 @@ export default function UnifiedCalendar({
               <Button
                 onClick={savePractice}
                 disabled={saving}
-                className="w-full bg-[#3BBFAD] hover:bg-[#3BBFAD]/90 text-white"
+                className="w-full"
               >
                 {saving ? '保存中...' : '保存する'}
               </Button>
             </div>
           )}
 
-          {tabMode === 'event' && !addForm && (
+          {tabMode === 'event' && !addForm && selectedEvents.length > 0 && (
             <div className="px-4 pb-4 pt-3 border-t shrink-0">
               <Button
-                variant="outline"
                 onClick={() => { setSelectedDate(null); setAddForm(null) }}
                 className="w-full"
               >
-                閉じる
+                保存する
               </Button>
             </div>
           )}
+
         </DialogContent>
       </Dialog>
 
-      {/* 大会・行事一覧 */}
+      {/* 大会一覧 */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-700">今月の大会・行事</h3>
+        <h3 className="text-sm font-semibold text-gray-700">今月の大会</h3>
         {monthEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">この月の予定はありません</p>
         ) : (
@@ -765,11 +798,24 @@ export default function UnifiedCalendar({
             const uniqueSizes = new Set(allPoleIds.map(id => poles.find(p => p.id === id)?.size).filter(Boolean))
             const poleCount = uniqueSizes.size
             const recordCount = Object.keys(eventRecords[e.id] ?? {}).length
+            const isEventDay = e.date <= todayStr
             return (
               <Card
                 key={e.id}
                 className="border-l-4 border-l-orange-400 cursor-pointer hover:bg-muted/30 transition-colors"
-                onClick={() => { setPoleDialog({ event: e }); setExpandedMemberId(null) }}
+                onClick={() => {
+                  if (isEventDay) {
+                    const attendingIds = eventAttendance[e.id] ?? []
+                    const inputs: Record<string, { m: string; cm: string }> = {}
+                    attendingIds.forEach(mid => {
+                      inputs[mid] = parseRecord(eventRecords[e.id]?.[mid] ?? '')
+                    })
+                    setRecordInputs(inputs)
+                    setRecordDialog(e)
+                  } else {
+                    setPoleDialog({ event: e }); setExpandedMemberId(null)
+                  }
+                }}
               >
                 <CardContent className="py-3 px-4">
                   <div className="space-y-1">
@@ -816,16 +862,10 @@ export default function UnifiedCalendar({
                       <p className="text-xs text-muted-foreground">{e.description}</p>
                     )}
                     <div className="flex items-center justify-between pt-1">
-                      <p className="text-xs text-orange-400">タップしてポールを登録</p>
+                      <p className="text-xs text-orange-400">
+                        {isEventDay ? 'タップして記録を登録' : 'タップしてポールを登録'}
+                      </p>
                       <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs text-muted-foreground"
-                          onClick={ev => { ev.stopPropagation(); setRecordDialog(e) }}
-                        >
-                          記録入力
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -864,27 +904,85 @@ export default function UnifiedCalendar({
                 )
               }
               return attendingMembers.map(member => {
-                const record = eventRecords[recordDialog.id]?.[member.id] ?? ''
+                const inputs = recordInputs[member.id] ?? { m: '', cm: '' }
+                const commitRecord = (m: string, cm: string) => {
+                  updateRecord(recordDialog.id, member.id, formatRecord(m, cm))
+                }
                 return (
                   <div key={member.id} className="space-y-1">
                     <Label className="text-sm font-medium">
                       {member.name}
                       <span className="text-xs text-muted-foreground font-normal ml-2">{gradeLabel(member.grade)}</span>
                     </Label>
-                    <Input
-                      value={record}
-                      onChange={e => updateRecord(recordDialog.id, member.id, e.target.value)}
-                      placeholder="例：2m10cm"
-                      className="font-mono"
-                    />
+                    <div className="flex items-center gap-1">
+                      <Input
+                        inputMode="numeric"
+                        value={inputs.m}
+                        onChange={e => setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, m: e.target.value } }))}
+                        onBlur={e => {
+                          const mH = toHalfWidth(e.target.value).replace(/\D/g, '')
+                          setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, m: mH } }))
+                          commitRecord(mH, inputs.cm)
+                        }}
+                        placeholder=""
+                        className="font-mono text-right"
+                      />
+                      <span className="shrink-0 text-sm">m</span>
+                      <Input
+                        inputMode="numeric"
+                        value={inputs.cm}
+                        onChange={e => setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, cm: e.target.value } }))}
+                        onBlur={e => {
+                          const cmH = toHalfWidth(e.target.value).replace(/\D/g, '')
+                          setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, cm: cmH } }))
+                          commitRecord(inputs.m, cmH)
+                        }}
+                        placeholder=""
+                        className="font-mono text-right"
+                      />
+                      <span className="shrink-0 text-sm">cm</span>
+                    </div>
                   </div>
                 )
               })
             })()}
           </div>
           <div className="px-4 pb-4 pt-3 border-t shrink-0">
-            <Button variant="outline" className="w-full" onClick={() => setRecordDialog(null)}>
-              閉じる
+            <Button className="w-full" onClick={() => setRecordDialog(null)}>
+              保存する
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ポール登録誘導確認ダイアログ */}
+      <Dialog open={polePrompt !== null} onOpenChange={open => !open && setPolePrompt(null)}>
+        <DialogContent className="p-6 gap-0">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-base">ポールを登録しますか？</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {polePrompt?.event.title} の使用ポールを続けて登録できます
+            </p>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button
+              className="w-full"
+              onClick={() => {
+                const event = polePrompt!.event
+                setPolePrompt(null)
+                setSelectedDate(null)
+                setExpandedMemberId(null)
+                setPoleDialog({ event })
+              }}
+            >
+              登録する
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setPolePrompt(null)}
+            >
+              しない
             </Button>
           </div>
         </DialogContent>
@@ -894,7 +992,7 @@ export default function UnifiedCalendar({
       <Dialog open={editDialog !== null} onOpenChange={open => !open && setEditDialog(null)}>
         <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
-            <DialogTitle className="text-base">大会・行事を編集</DialogTitle>
+            <DialogTitle className="text-base">大会を編集</DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 px-4 py-3 space-y-3">
             <div className="space-y-1">
@@ -1057,8 +1155,8 @@ export default function UnifiedCalendar({
           </div>
 
           <div className="px-4 pb-4 pt-3 border-t shrink-0">
-            <Button variant="outline" className="w-full" onClick={() => { setPoleDialog(null); setExpandedMemberId(null) }}>
-              閉じる
+            <Button className="w-full" onClick={() => { setPoleDialog(null); setExpandedMemberId(null) }}>
+              保存する
             </Button>
           </div>
         </DialogContent>

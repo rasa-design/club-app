@@ -3,7 +3,7 @@
  * POST /api/seed  body: { secret: "SEED_SECRET の値" }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { writeStorage } from '@/lib/storage'
+import { readStorage, writeStorage } from '@/lib/storage'
 
 // data/*.json の内容をここに埋め込む
 import membersData from '@/data/members.json'
@@ -20,6 +20,17 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   if (body.secret !== process.env.SEED_SECRET) {
     return NextResponse.json({ error: '不正なリクエスト' }, { status: 403 })
+  }
+
+  if (body.pruneOldMembers) {
+    // 指定年度より前のメンバーデータを削除
+    const cutoff: number = body.cutoffYear ?? 2025
+    const members = await readStorage<Record<string, unknown>>('members', {})
+    for (const key of Object.keys(members)) {
+      if (Number(key) < cutoff) delete members[key]
+    }
+    await writeStorage('members', members)
+    return NextResponse.json({ ok: true, message: `${cutoff}年度より前のメンバーデータを削除しました` })
   }
 
   if (body.practicesOnly) {
