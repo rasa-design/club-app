@@ -9,12 +9,11 @@ import { Button } from '@/components/ui/button'
 import LogoText from '@/components/LogoText'
 
 const links = [
-  { href: '/',         label: 'ホーム',             color: 'var(--primary)' },
-  { href: '/payments', label: '練習日カレンダー',   color: '#3BBFAD' },
-  { href: '/calendar', label: '大会カレンダー',     color: '#F4A62A' },
-  { href: '/mindset',  label: 'マインドセット',     color: '#E85FA0' },
-  { href: '/members',  label: 'クラブ生一覧',       color: '#7C5CBF' },
-  { href: '/admin',    label: '管理者メニュー',     color: '#F7D33E' },
+  { href: '/',         label: 'ホーム',                   color: 'var(--primary)' },
+  { href: '/payments', label: '練習日/大会カレンダー',   color: '#3BBFAD' },
+  { href: '/mindset',  label: 'マインドセット',           color: '#E85FA0' },
+  { href: '/members',  label: 'クラブ生一覧',             color: '#7C5CBF' },
+  { href: '/admin',    label: '管理者メニュー',           color: '#F7D33E' },
 ]
 
 export default function Nav() {

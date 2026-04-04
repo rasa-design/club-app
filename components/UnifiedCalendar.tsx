@@ -5,15 +5,28 @@ import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance
 import { gradeLabel } from '@/lib/grade'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ChevronLeft, ChevronRight, Clock, Check, MapPin } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
@@ -50,29 +63,36 @@ type MemberState = { attended: boolean; start: string; end: string }
 type PracticeState = Record<string, MemberState>
 type TabMode = 'practice' | 'event'
 
+type AddForm = { title: string; date: string; endDate: string; location: string; description: string }
+
 export default function UnifiedCalendar({
   initialPractices,
   initialAttendance,
-  events,
+  events: initialEvents,
   initialEventAttendance,
   members,
+  isAdmin,
 }: {
   initialPractices: Practices
   initialAttendance: Attendance
   events: Event[]
   initialEventAttendance: EventAttendance
   members: Member[]
+  isAdmin: boolean
 }) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
   const [practices] = useState<Practices>(initialPractices)
   const [attendance, setAttendance] = useState<Attendance>(initialAttendance)
+  const [events, setEvents] = useState<Event[]>(initialEvents)
   const [eventAttendance, setEventAttendance] = useState<EventAttendance>(initialEventAttendance)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [practiceState, setPracticeState] = useState<PracticeState>({})
   const [saving, setSaving] = useState(false)
   const [tabMode, setTabMode] = useState<TabMode>('practice')
+  const [addForm, setAddForm] = useState<AddForm | null>(null)
+  const [addSaving, setAddSaving] = useState(false)
 
   const prevMonth = () => {
     if (month === 1) { setYear(y => y - 1); setMonth(12) }
@@ -91,7 +111,9 @@ export default function UnifiedCalendar({
     const hasPractice = slots.length > 0
     const dayEvents = getEventsOnDate(events, date)
     const hasEvent = dayEvents.length > 0
-    if (!hasPractice && !hasEvent) return
+
+    // 一般ユーザーは練習日か大会のある日のみタップ可能
+    if (!isAdmin && !hasPractice && !hasEvent) return
 
     if (hasPractice) {
       const defaultStart = slots[0]?.start ?? '09:00'
@@ -106,6 +128,7 @@ export default function UnifiedCalendar({
       setPracticeState(state)
     }
 
+    setAddForm(null)
     setTabMode(hasPractice ? 'practice' : 'event')
     setSelectedDate(date)
   }
@@ -174,7 +197,6 @@ export default function UnifiedCalendar({
   }
 
   const toggleEventMember = async (eventId: string, memberId: string) => {
-    // 楽観的更新
     setEventAttendance(prev => {
       const current = prev[eventId] ?? []
       const next = current.includes(memberId)
@@ -187,6 +209,41 @@ export default function UnifiedCalendar({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, memberId }),
     })
+  }
+
+  const deleteEvent = async (eventId: string) => {
+    setEvents(prev => prev.filter(e => e.id !== eventId))
+    await fetch('/api/events', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: eventId }),
+    })
+  }
+
+  const startAddForm = () => {
+    setAddForm({
+      title: '',
+      date: selectedDate ?? '',
+      endDate: selectedDate ?? '',
+      location: '',
+      description: '',
+    })
+  }
+
+  const saveEvent = async () => {
+    if (!addForm || !addForm.title || !addForm.date) return
+    setAddSaving(true)
+    const res = await fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(addForm),
+    })
+    if (res.ok) {
+      const created: Event = await res.json()
+      setEvents(prev => [...prev, created])
+      setAddForm(null)
+    }
+    setAddSaving(false)
   }
 
   const cells: (number | null)[] = [
@@ -202,7 +259,10 @@ export default function UnifiedCalendar({
   const selectedEvents = selectedDate ? getEventsOnDate(events, selectedDate) : []
   const [sy, sm, sd] = selectedDate ? selectedDate.split('-').map(Number) : [0, 0, 0]
   const selectedDow = selectedDate ? new Date(sy, sm - 1, sd).getDay() : 0
-  const hasBoth = selectedSlots.length > 0 && selectedEvents.length > 0
+
+  const hasPracticeTab = selectedSlots.length > 0
+  const hasEventTab = selectedEvents.length > 0 || isAdmin
+  const hasBothTabs = hasPracticeTab && hasEventTab
 
   return (
     <div className="space-y-4">
@@ -242,7 +302,7 @@ export default function UnifiedCalendar({
           const hasEvent = dayEvents.length > 0
           const isToday = date === todayStr
           const attendCount = Object.keys(attendance[date] ?? {}).length
-          const tappable = hasPractice || hasEvent
+          const tappable = hasPractice || hasEvent || isAdmin
 
           return (
             <button
@@ -290,19 +350,19 @@ export default function UnifiedCalendar({
         </span>
       </div>
 
-      {/* 参加ダイアログ */}
-      <Dialog open={selectedDate !== null} onOpenChange={open => !open && setSelectedDate(null)}>
+      {/* ダイアログ */}
+      <Dialog open={selectedDate !== null} onOpenChange={open => { if (!open) { setSelectedDate(null); setAddForm(null) } }}>
         <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">
               {selectedDate && `${sm}/${sd}（${DAYS_JA[selectedDow]}）`}
             </DialogTitle>
 
-            {/* 練習/大会タブ（両方ある日のみ） */}
-            {hasBoth && (
+            {/* 練習/大会タブ */}
+            {hasBothTabs && (
               <div className="flex rounded-md border overflow-hidden w-fit mt-2">
                 <button
-                  onClick={() => setTabMode('practice')}
+                  onClick={() => { setTabMode('practice'); setAddForm(null) }}
                   className={cn(
                     'px-4 py-1.5 text-xs font-medium transition-colors',
                     tabMode === 'practice' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground'
@@ -322,7 +382,6 @@ export default function UnifiedCalendar({
               </div>
             )}
 
-            {/* 練習時間表示 */}
             {tabMode === 'practice' && selectedSlots.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-1">
                 {selectedSlots.map(slot => (
@@ -385,74 +444,191 @@ export default function UnifiedCalendar({
             })}
 
             {/* 大会タブ */}
-            {tabMode === 'event' && selectedEvents.map(event => {
-              const attendingIds = eventAttendance[event.id] ?? []
-              return (
-                <div key={event.id} className="space-y-2">
-                  {/* イベント詳細 */}
-                  <div className="rounded-xl border border-orange-200 bg-orange-50/50 px-4 py-3 space-y-1">
-                    <p className="font-semibold text-sm">{event.title}</p>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <Badge variant="secondary" className="text-xs font-normal">
-                        {formatDate(event.date)}
-                        {event.endDate && event.endDate !== event.date
-                          ? ` 〜 ${formatDate(event.endDate)}`
-                          : ''}
-                      </Badge>
-                      {event.location && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                          <MapPin className="h-3 w-3" />
-                          {event.location}
-                        </span>
+            {tabMode === 'event' && (
+              <div className="space-y-4">
+                {/* 既存イベント一覧 */}
+                {selectedEvents.map(event => {
+                  const attendingIds = eventAttendance[event.id] ?? []
+                  return (
+                    <div key={event.id} className="space-y-2">
+                      <div className="rounded-xl border border-orange-200 bg-orange-50/50 px-4 py-3 space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-sm">{event.title}</p>
+                          {isAdmin && (
+                            <AlertDialog>
+                              <AlertDialogTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                                  />
+                                }
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>削除しますか？</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    「{event.title}」を削除します。
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteEvent(event.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    削除する
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <Badge variant="secondary" className="text-xs font-normal">
+                            {formatDate(event.date)}
+                            {event.endDate && event.endDate !== event.date
+                              ? ` 〜 ${formatDate(event.endDate)}`
+                              : ''}
+                          </Badge>
+                          {event.location && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                              <MapPin className="h-3 w-3" />
+                              {event.location}
+                            </span>
+                          )}
+                        </div>
+                        {event.description && (
+                          <p className="text-xs text-muted-foreground">{event.description}</p>
+                        )}
+                      </div>
+
+                      {members.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-xs text-muted-foreground px-1">参加登録</p>
+                          {members.map(member => {
+                            const attending = attendingIds.includes(member.id)
+                            return (
+                              <button
+                                key={member.id}
+                                onClick={() => toggleEventMember(event.id, member.id)}
+                                className={cn(
+                                  'flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl border transition-colors',
+                                  attending ? 'border-orange-300 bg-orange-50' : 'bg-card'
+                                )}
+                              >
+                                <div className={cn(
+                                  'w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                                  attending ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
+                                )}>
+                                  {attending && <Check className="h-3.5 w-3.5 text-white" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-medium text-sm">{member.name}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
                       )}
                     </div>
-                    {event.description && (
-                      <p className="text-xs text-muted-foreground">{event.description}</p>
-                    )}
-                  </div>
+                  )
+                })}
 
-                  {/* 参加メンバー */}
-                  {members.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-xs text-muted-foreground px-1">参加登録</p>
-                      {members.map(member => {
-                        const attending = attendingIds.includes(member.id)
-                        return (
-                          <button
-                            key={member.id}
-                            onClick={() => toggleEventMember(event.id, member.id)}
-                            className={cn(
-                              'flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl border transition-colors',
-                              attending ? 'border-orange-300 bg-orange-50' : 'bg-card'
-                            )}
-                          >
-                            <div className={cn(
-                              'w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
-                              attending ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
-                            )}>
-                              {attending && <Check className="h-3.5 w-3.5 text-white" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="font-medium text-sm">{member.name}</span>
-                              <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
-                            </div>
-                          </button>
-                        )
-                      })}
+                {/* 管理者：行事追加 */}
+                {isAdmin && !addForm && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={startAddForm}
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    行事を追加
+                  </Button>
+                )}
+
+                {isAdmin && addForm && (
+                  <div className="rounded-xl border p-4 space-y-3">
+                    <p className="text-sm font-medium">行事を追加</p>
+                    <div className="space-y-1">
+                      <Label className="text-xs">タイトル <span className="text-destructive">*</span></Label>
+                      <Input
+                        value={addForm.title}
+                        onChange={e => setAddForm(f => f ? { ...f, title: e.target.value } : f)}
+                        placeholder="例：春季地区大会"
+                        autoFocus
+                      />
                     </div>
-                  )}
-                </div>
-              )
-            })}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">開始日</Label>
+                        <DatePicker
+                          value={addForm.date}
+                          onChange={v => setAddForm(f => f ? { ...f, date: v } : f)}
+                          placeholder="開始日"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">終了日</Label>
+                        <DatePicker
+                          value={addForm.endDate}
+                          onChange={v => setAddForm(f => f ? { ...f, endDate: v } : f)}
+                          placeholder="終了日"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">場所</Label>
+                      <Input
+                        value={addForm.location}
+                        onChange={e => setAddForm(f => f ? { ...f, location: e.target.value } : f)}
+                        placeholder="例：市立体育館"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">メモ</Label>
+                      <Input
+                        value={addForm.description}
+                        onChange={e => setAddForm(f => f ? { ...f, description: e.target.value } : f)}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setAddForm(null)}>
+                        キャンセル
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={saveEvent}
+                        disabled={addSaving || !addForm.title}
+                      >
+                        {addSaving ? '追加中...' : '追加する'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-            {members.length === 0 && (
+                {selectedEvents.length === 0 && !addForm && !isAdmin && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    この日の大会・行事はありません
+                  </p>
+                )}
+              </div>
+            )}
+
+            {members.length === 0 && tabMode === 'practice' && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 登録されているメンバーがいません
               </p>
             )}
           </div>
 
-          {/* 練習タブのみ保存ボタン */}
+          {/* フッターボタン */}
           {tabMode === 'practice' && (
             <div className="px-4 pb-4 pt-3 border-t shrink-0">
               <Button
@@ -465,12 +641,11 @@ export default function UnifiedCalendar({
             </div>
           )}
 
-          {/* 大会タブは閉じるボタン */}
-          {tabMode === 'event' && (
+          {tabMode === 'event' && !addForm && (
             <div className="px-4 pb-4 pt-3 border-t shrink-0">
               <Button
                 variant="outline"
-                onClick={() => setSelectedDate(null)}
+                onClick={() => { setSelectedDate(null); setAddForm(null) }}
                 className="w-full"
               >
                 閉じる
