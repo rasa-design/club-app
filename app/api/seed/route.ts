@@ -9,20 +9,25 @@ import { writeStorage } from '@/lib/storage'
 import membersData from '@/data/members.json'
 import eventsData from '@/data/events.json'
 import paymentsData from '@/data/payments.json'
+import practicesData from '@/data/practices.json'
 
 export async function POST(req: NextRequest) {
-  const { secret } = await req.json()
-  if (secret !== process.env.SEED_SECRET) {
+  const body = await req.json()
+  if (body.secret !== process.env.SEED_SECRET) {
     return NextResponse.json({ error: '不正なリクエスト' }, { status: 403 })
   }
 
-  await Promise.all([
-    writeStorage('members', membersData),
-    writeStorage('events', eventsData),
-    writeStorage('payments', paymentsData),
-    writeStorage('practices', {}),
-    writeStorage('attendance', {}),
-  ])
+  if (body.practicesOnly) {
+    await writeStorage('practices', practicesData)
+  } else {
+    await Promise.all([
+      writeStorage('members', membersData),
+      writeStorage('events', eventsData),
+      writeStorage('payments', paymentsData),
+      writeStorage('practices', practicesData),
+      writeStorage('attendance', {}),
+    ])
+  }
 
   return NextResponse.json({ ok: true, message: 'KVにデータを投入しました' })
 }
