@@ -687,7 +687,9 @@ export default function UnifiedCalendar({
           <p className="text-sm text-muted-foreground text-center py-4">この月の予定はありません</p>
         ) : (
           monthEvents.map((e) => {
-            const assignedCount = Object.values(eventPoles[e.id] ?? {}).filter(ids => ids.length > 0).length
+            const allPoleIds = Object.values(eventPoles[e.id] ?? {}).flat()
+            const uniqueSizes = new Set(allPoleIds.map(id => poles.find(p => p.id === id)?.size).filter(Boolean))
+            const poleCount = uniqueSizes.size
             return (
               <Card
                 key={e.id}
@@ -698,9 +700,9 @@ export default function UnifiedCalendar({
                   <div className="space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="font-semibold text-sm">{e.title}</div>
-                      {assignedCount > 0 && (
+                      {poleCount > 0 && (
                         <Badge variant="outline" className="text-xs shrink-0 text-orange-500 border-orange-300">
-                          {assignedCount}人登録済
+                          ポール選択本数{poleCount}
                         </Badge>
                       )}
                     </div>
