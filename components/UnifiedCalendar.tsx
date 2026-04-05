@@ -1090,25 +1090,27 @@ export default function UnifiedCalendar({
           </DialogHeader>
 
           {/* 表示切り替えトグル */}
-          <div className="flex rounded-md border overflow-hidden mx-4 mt-3">
-            <button
-              onClick={() => { setPoleViewMode('member'); setExpandedMemberId(null); setExpandedPoleId(null) }}
-              className={cn(
-                'px-4 py-1.5 text-xs font-medium transition-colors',
-                poleViewMode === 'member' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted/50'
-              )}
-            >
-              クラブ生基準
-            </button>
-            <button
-              onClick={() => { setPoleViewMode('pole'); setExpandedMemberId(null); setExpandedPoleId(null) }}
-              className={cn(
-                'px-4 py-1.5 text-xs font-medium border-l transition-colors',
-                poleViewMode === 'pole' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted/50'
-              )}
-            >
-              ポール基準
-            </button>
+          <div className="px-4 mt-3">
+            <div className="inline-flex rounded-md border overflow-hidden w-fit">
+              <button
+                onClick={() => { setPoleViewMode('member'); setExpandedMemberId(null); setExpandedPoleId(null) }}
+                className={cn(
+                  'px-4 py-1.5 text-xs font-medium whitespace-nowrap transition-colors',
+                  poleViewMode === 'member' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted/50'
+                )}
+              >
+                クラブ生基準
+              </button>
+              <button
+                onClick={() => { setPoleViewMode('pole'); setExpandedMemberId(null); setExpandedPoleId(null) }}
+                className={cn(
+                  'px-4 py-1.5 text-xs font-medium whitespace-nowrap border-l transition-colors',
+                  poleViewMode === 'pole' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted/50'
+                )}
+              >
+                ポール基準
+              </button>
+            </div>
           </div>
 
           <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
