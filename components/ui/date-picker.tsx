@@ -48,7 +48,7 @@ export function DatePicker({
         <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
         {selected ? format(selected, 'yyyy年M月d日', { locale: ja }) : placeholder}
       </PopoverTrigger>
-      <PopoverContent className="w-[min(calc(100vw-2rem),320px)] p-0" align="start" side="top" sideOffset={4} positionerClassName="overflow-visible">
+      <PopoverContent className="w-[min(calc(100vw-2rem),320px)] p-0 overflow-y-auto" align="start" side="top" sideOffset={4} collisionPadding={0}>
         <Calendar
           mode="single"
           selected={selected}
