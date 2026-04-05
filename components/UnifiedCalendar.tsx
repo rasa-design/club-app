@@ -441,9 +441,11 @@ export default function UnifiedCalendar({
               )}>
                 {day}
               </span>
-              <div className="flex gap-0.5 items-center">
+              <div className="flex gap-0.5 items-center flex-wrap justify-center max-w-full">
                 {hasPractice && <span className="w-1.5 h-1.5 rounded-full bg-[#3BBFAD]" />}
-                {hasEvent && <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
+                {dayEvents.map(e => (
+                  <span key={e.id} className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                ))}
               </div>
             </button>
           )
@@ -664,8 +666,8 @@ export default function UnifiedCalendar({
                   )
                 })}
 
-                {/* 大会追加（この日に大会がない場合のみ） */}
-                {selectedEvents.length === 0 && !addForm && (
+                {/* 大会追加 */}
+                {!addForm && (
                   <Button
                     variant="outline"
                     className="w-full"
@@ -759,11 +761,6 @@ export default function UnifiedCalendar({
                   </div>
                 )}
 
-                {selectedEvents.length === 0 && !addForm && !isAdmin && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    この日の大会はありません
-                  </p>
-                )}
               </div>
             )}
 
