@@ -450,7 +450,7 @@ export default function UnifiedCalendar({
       </div>
 
       {/* 凡例 */}
-      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground pb-4">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-[#3BBFAD] inline-block" />
           練習日
