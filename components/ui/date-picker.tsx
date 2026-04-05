@@ -56,7 +56,7 @@ export function DatePicker({
           defaultMonth={selected}
           locale={ja}
           captionLayout="dropdown"
-          className="[--cell-size:--spacing(8)] w-full p-2 text-sm"
+          className="[--cell-size:--spacing(9)] w-full p-2"
         />
       </PopoverContent>
     </Popover>
