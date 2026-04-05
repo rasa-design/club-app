@@ -737,7 +737,14 @@ export default function UnifiedCalendar({
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1" onClick={() => setAddForm(null)}>
+                      <Button variant="outline" className="flex-1" onClick={() => {
+                        const hasPractice = (practices[selectedDate ?? ''] ?? []).length > 0
+                        const hasEvent = getEventsOnDate(events, selectedDate ?? '').length > 0
+                        if (!hasPractice && !hasEvent) {
+                          setSelectedDate(null)
+                        }
+                        setAddForm(null)
+                      }}>
                         キャンセル
                       </Button>
                       <Button
