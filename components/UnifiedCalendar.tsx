@@ -1090,7 +1090,7 @@ export default function UnifiedCalendar({
           </DialogHeader>
 
           {/* 表示切り替えトグル */}
-          <div className="flex rounded-md border overflow-hidden mx-4 mt-3 w-fit">
+          <div className="flex rounded-md border overflow-hidden mx-4 mt-3">
             <button
               onClick={() => { setPoleViewMode('member'); setExpandedMemberId(null); setExpandedPoleId(null) }}
               className={cn(
