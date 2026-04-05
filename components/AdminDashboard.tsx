@@ -95,11 +95,10 @@ export default function AdminDashboard({
           </section>
         )}
 
-        {activeTab === 'poles' && (
-          <section>
-            <PoleEditor initialPoles={poles} />
-          </section>
-        )}
+        {/* ポール: アンマウントしないようhiddenで隠す（stateを保持するため） */}
+        <section className={cn(activeTab !== 'poles' && 'hidden')}>
+          <PoleEditor initialPoles={poles} />
+        </section>
       </div>
     </div>
   )
