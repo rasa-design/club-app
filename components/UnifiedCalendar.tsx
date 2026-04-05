@@ -137,8 +137,7 @@ export default function UnifiedCalendar({
     const dayEvents = getEventsOnDate(events, date)
     const hasEvent = dayEvents.length > 0
 
-    // 一般ユーザーは練習日か大会のある日のみタップ可能
-    if (!isAdmin && !hasPractice && !hasEvent) return
+    // 練習日か大会のある日、または大会追加のためにどのユーザーもタップ可能
 
     if (hasPractice) {
       const defaultStart = slots[0]?.start ?? '09:00'
@@ -155,8 +154,8 @@ export default function UnifiedCalendar({
       setPracticeState(state)
     }
 
-    // 管理者が練習も大会もない日をタップした場合は直接追加フォームを開く
-    const shouldOpenAddForm = isAdmin && !hasPractice && !hasEvent
+    // 練習も大会もない日をタップした場合は直接追加フォームを開く
+    const shouldOpenAddForm = !hasPractice && !hasEvent
     setAddForm(shouldOpenAddForm ? {
       title: '',
       date,
@@ -419,7 +418,7 @@ export default function UnifiedCalendar({
           const dayEvents = getEventsOnDate(events, date)
           const hasEvent = dayEvents.length > 0
           const isToday = date === todayStr
-          const tappable = hasPractice || hasEvent || isAdmin
+          const tappable = true
 
           return (
             <button
@@ -663,8 +662,8 @@ export default function UnifiedCalendar({
                   )
                 })}
 
-                {/* 管理者：大会追加（この日に大会がない場合のみ） */}
-                {isAdmin && selectedEvents.length === 0 && !addForm && (
+                {/* 大会追加（この日に大会がない場合のみ） */}
+                {selectedEvents.length === 0 && !addForm && (
                   <Button
                     variant="outline"
                     className="w-full"
@@ -675,7 +674,7 @@ export default function UnifiedCalendar({
                   </Button>
                 )}
 
-                {isAdmin && addForm && (
+                {addForm && (
                   <div className="rounded-xl border p-4 space-y-3">
                     <p className="text-sm font-medium">大会を追加</p>
                     <div className="space-y-1">
