@@ -68,12 +68,14 @@ export default function PaymentTable({
   insurance: initialInsurance,
   isAdmin,
   initialYear,
+  refreshKey,
 }: {
   members: Member[]
   payments: Payments
   insurance: InsurancePayments
   isAdmin: boolean
   initialYear?: number
+  refreshKey?: number
 }) {
   const [schoolYear, setSchoolYear] = useState(initialYear ?? currentSchoolYear())
   const months = getSchoolYearMonths(schoolYear)
@@ -90,6 +92,15 @@ export default function PaymentTable({
       .then(r => r.json())
       .then((years: number[]) => setSelectableYears(years))
   }, [])
+
+  // タブ切り替え時にメンバーを再取得（refreshKey変化で発火）
+  useEffect(() => {
+    if (refreshKey === undefined || refreshKey === 0) return
+    fetch(`/api/members?year=${schoolYear}`)
+      .then((r) => r.json())
+      .then(setMembers)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey])
 
   const sortedMembers = sortMembers(members, sortOrder)
 

@@ -39,6 +39,7 @@ export default function AdminDashboard({
   initialYear: number
 }) {
   const [activeTab, setActiveTab] = useState<TabId>('payment')
+  const [paymentRefreshKey, setPaymentRefreshKey] = useState(0)
   const [eventsState, setEventsState] = useState<Event[]>(
     [...events].sort((a, b) => a.date.localeCompare(b.date))
   )
@@ -56,7 +57,10 @@ export default function AdminDashboard({
         {TABS.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              if (tab.id === 'payment') setPaymentRefreshKey(k => k + 1)
+              setActiveTab(tab.id)
+            }}
             className={cn(
               'flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
               activeTab === tab.id
@@ -74,7 +78,7 @@ export default function AdminDashboard({
         {/* 月謝管理: アンマウントしないようhiddenで隠す（stateを保持するため） */}
         <section className={cn('space-y-2', activeTab !== 'payment' && 'hidden')}>
           <p className="text-xs text-gray-500">◯をタップして支払い済みにできます</p>
-          <PaymentTable members={members} payments={payments} insurance={insurance} isAdmin={true} initialYear={initialYear} />
+          <PaymentTable members={members} payments={payments} insurance={insurance} isAdmin={true} initialYear={initialYear} refreshKey={paymentRefreshKey} />
         </section>
 
         {activeTab === 'members' && (
