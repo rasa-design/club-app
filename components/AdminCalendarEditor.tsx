@@ -224,11 +224,11 @@ function EventForm({
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label>開始日 <span className="text-destructive">*</span></Label>
-          <DatePicker inline value={form.date} onChange={setField('date')} placeholder="開始日" />
+          <DatePicker value={form.date} onChange={setField('date')} placeholder="開始日" />
         </div>
         <div className="space-y-1">
           <Label>終了日</Label>
-          <DatePicker inline value={form.endDate} onChange={setField('endDate')} placeholder="終了日" />
+          <DatePicker value={form.endDate} onChange={setField('endDate')} placeholder="終了日" />
         </div>
       </div>
       <div className="space-y-1">
@@ -237,7 +237,7 @@ function EventForm({
       </div>
       <div className="space-y-1">
         <Label>申し込み締め切り日</Label>
-        <DatePicker inline value={form.entryDeadline ?? ''} onChange={setField('entryDeadline')} placeholder="締め切り日" />
+        <DatePicker value={form.entryDeadline ?? ''} onChange={setField('entryDeadline')} placeholder="締め切り日" />
       </div>
       <div className="space-y-1">
         <Label>ポール運搬担当者</Label>

@@ -693,7 +693,7 @@ export default function UnifiedCalendar({
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-xs">開始日</Label>
-                        <DatePicker inline
+                        <DatePicker
                           value={addForm.date}
                           onChange={v => setAddForm(f => f ? { ...f, date: v } : f)}
                           placeholder="開始日"
@@ -701,7 +701,7 @@ export default function UnifiedCalendar({
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">終了日</Label>
-                        <DatePicker inline
+                        <DatePicker
                           value={addForm.endDate}
                           onChange={v => setAddForm(f => f ? { ...f, endDate: v } : f)}
                           placeholder="終了日"
@@ -718,7 +718,7 @@ export default function UnifiedCalendar({
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">申し込み締め切り日</Label>
-                      <DatePicker inline
+                      <DatePicker
                         value={addForm.entryDeadline ?? ''}
                         onChange={v => setAddForm(f => f ? { ...f, entryDeadline: v } : f)}
                         placeholder="締め切り日"
@@ -1016,11 +1016,11 @@ export default function UnifiedCalendar({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">開始日 <span className="text-destructive">*</span></Label>
-                <DatePicker inline value={editForm.date} onChange={v => setEditForm(f => ({ ...f, date: v }))} placeholder="開始日" />
+                <DatePicker value={editForm.date} onChange={v => setEditForm(f => ({ ...f, date: v }))} placeholder="開始日" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">終了日</Label>
-                <DatePicker inline value={editForm.endDate} onChange={v => setEditForm(f => ({ ...f, endDate: v }))} placeholder="終了日" />
+                <DatePicker value={editForm.endDate} onChange={v => setEditForm(f => ({ ...f, endDate: v }))} placeholder="終了日" />
               </div>
             </div>
             <div className="space-y-1">
@@ -1033,7 +1033,7 @@ export default function UnifiedCalendar({
             </div>
             <div className="space-y-1">
               <Label className="text-xs">申し込み締め切り日</Label>
-              <DatePicker inline value={editForm.entryDeadline ?? ''} onChange={v => setEditForm(f => ({ ...f, entryDeadline: v }))} placeholder="締め切り日" />
+              <DatePicker value={editForm.entryDeadline ?? ''} onChange={v => setEditForm(f => ({ ...f, entryDeadline: v }))} placeholder="締め切り日" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">ポール運搬担当者</Label>
