@@ -1090,24 +1090,24 @@ export default function UnifiedCalendar({
           </DialogHeader>
 
           {/* 表示切り替えトグル */}
-          <div className="flex px-4 pt-3 gap-1">
+          <div className="flex rounded-md border overflow-hidden mx-4 mt-3 w-fit">
             <button
               onClick={() => { setPoleViewMode('member'); setExpandedMemberId(null); setExpandedPoleId(null) }}
               className={cn(
-                'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors border',
-                poleViewMode === 'member' ? 'bg-muted text-foreground border-transparent' : 'bg-background text-muted-foreground border-border'
+                'px-4 py-1.5 text-xs font-medium transition-colors',
+                poleViewMode === 'member' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted/50'
               )}
             >
-              クラブ生 → ポール
+              クラブ生基準
             </button>
             <button
               onClick={() => { setPoleViewMode('pole'); setExpandedMemberId(null); setExpandedPoleId(null) }}
               className={cn(
-                'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors border',
-                poleViewMode === 'pole' ? 'bg-muted text-foreground border-transparent' : 'bg-background text-muted-foreground border-border'
+                'px-4 py-1.5 text-xs font-medium border-l transition-colors',
+                poleViewMode === 'pole' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted/50'
               )}
             >
-              ポール → クラブ生
+              ポール基準
             </button>
           </div>
 
