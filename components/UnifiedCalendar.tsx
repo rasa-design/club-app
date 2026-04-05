@@ -395,12 +395,13 @@ export default function UnifiedCalendar({
       </div>
 
       {/* カレンダーグリッド */}
-      <div className="grid grid-cols-7 border rounded-xl overflow-hidden">
+      <div className="border rounded-xl overflow-hidden px-1 pt-3 pb-3">
+      <div className="grid grid-cols-7">
         {DAYS_JA.map((d, i) => (
           <div
             key={d}
             className={cn(
-              'text-center text-xs font-semibold py-2 text-muted-foreground',
+              'text-center text-xs font-semibold pb-2 text-muted-foreground',
               i === 0 && 'text-destructive',
               i === 6 && 'text-primary',
             )}
@@ -447,6 +448,7 @@ export default function UnifiedCalendar({
             </button>
           )
         })}
+      </div>
       </div>
 
       {/* 凡例 */}
