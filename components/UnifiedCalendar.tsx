@@ -155,7 +155,15 @@ export default function UnifiedCalendar({
       setPracticeState(state)
     }
 
-    setAddForm(null)
+    // 管理者が練習も大会もない日をタップした場合は直接追加フォームを開く
+    const shouldOpenAddForm = isAdmin && !hasPractice && !hasEvent
+    setAddForm(shouldOpenAddForm ? {
+      title: '',
+      date,
+      endDate: date,
+      location: '',
+      description: '',
+    } : null)
     setTabMode(hasPractice ? 'practice' : 'event')
     setSelectedDate(date)
   }
