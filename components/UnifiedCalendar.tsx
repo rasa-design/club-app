@@ -378,11 +378,11 @@ export default function UnifiedCalendar({
   const selectedDow = selectedDate ? new Date(sy, sm - 1, sd).getDay() : 0
 
   const hasPracticeTab = selectedSlots.length > 0
-  const hasEventTab = selectedEvents.length > 0 || isAdmin
+  const hasEventTab = selectedEvents.length > 0 || true
   const hasBothTabs = hasPracticeTab && hasEventTab
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-8">
       {/* 月ナビゲーション */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="icon" onClick={prevMonth}>
@@ -463,7 +463,7 @@ export default function UnifiedCalendar({
 
       {/* ダイアログ */}
       <Dialog open={selectedDate !== null} onOpenChange={open => { if (!open) { setSelectedDate(null); setAddForm(null) } }}>
-        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" initialFocus={-1}>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">
               {selectedDate && `${sm}/${sd}（${DAYS_JA[selectedDow]}）`}
@@ -899,7 +899,7 @@ export default function UnifiedCalendar({
 
       {/* 記録入力ダイアログ */}
       <Dialog open={recordDialog !== null} onOpenChange={open => !open && setRecordDialog(null)}>
-        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" initialFocus={-1}>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">{recordDialog?.title}</DialogTitle>
             <p className="text-xs text-muted-foreground mt-1">参加メンバーの最高跳躍記録を入力してください</p>
@@ -1002,7 +1002,7 @@ export default function UnifiedCalendar({
 
       {/* 大会編集ダイアログ */}
       <Dialog open={editDialog !== null} onOpenChange={open => !open && setEditDialog(null)}>
-        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" initialFocus={-1}>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">大会を編集</DialogTitle>
           </DialogHeader>

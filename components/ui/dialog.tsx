@@ -43,9 +43,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  suppressAutoFocus = false,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  suppressAutoFocus?: boolean
 }) {
   return (
     <DialogPortal>
@@ -58,6 +60,7 @@ function DialogContent({
         )}
         {...props}
       >
+        {suppressAutoFocus && <span tabIndex={0} className="sr-only" aria-hidden />}
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
