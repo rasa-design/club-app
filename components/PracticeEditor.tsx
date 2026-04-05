@@ -215,8 +215,8 @@ export default function PracticeEditor({ initialPractices }: { initialPractices:
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 space-y-1.5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <Label htmlFor="start">開始時刻</Label>
                 <Input
                   id="start"
@@ -225,8 +225,7 @@ export default function PracticeEditor({ initialPractices }: { initialPractices:
                   onChange={e => setStart(e.target.value)}
                 />
               </div>
-              <span className="mt-6 text-muted-foreground">〜</span>
-              <div className="flex-1 space-y-1.5">
+              <div className="space-y-1.5">
                 <Label htmlFor="end">終了時刻</Label>
                 <Input
                   id="end"
