@@ -18,8 +18,8 @@ export const metadata: Metadata = {
     title: 'GPVCクラブ',
   },
   icons: {
-    apple: '/logo-icon.svg',
-    icon: '/logo-icon.svg',
+    apple: '/apple-touch-icon.png',
+    icon: '/apple-touch-icon.png',
   },
 }
 
