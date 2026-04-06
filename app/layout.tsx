@@ -12,6 +12,15 @@ const notoSansJP = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: 'GPVCクラブ',
   description: 'GPVCクラブ 保護者向けアプリ',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'GPVCクラブ',
+  },
+  icons: {
+    apple: '/logo-icon.svg',
+    icon: '/logo-icon.svg',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
