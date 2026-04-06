@@ -28,11 +28,14 @@ const CHARS: {
   { char: 'l', accent: ACCENTS[6], angle:  90, from: 35, to: 65 },
   { char: 'e', accent: ACCENTS[7], angle: 100, from: 40, to: 65 },
   { char: ' ' },
-  { char: 'V', accent: ACCENTS[0], angle: 130, from: 25, to: 50 },
+  { char: 'V', accent: ACCENTS[7], angle: 130, from: 25, to: 50 },
   { char: 'a', accent: ACCENTS[2], angle:  85, from: 50, to: 75 },
   { char: 'u', accent: ACCENTS[4], angle: 115, from: 20, to: 45 },
   { char: 'l', accent: ACCENTS[6], angle:  90, from: 55, to: 80 },
   { char: 't', accent: ACCENTS[1], angle: 105, from: 30, to: 55 },
+  { char: 'e', accent: ACCENTS[5], angle:  95, from: 40, to: 65 },
+  { char: 'r', accent: ACCENTS[3], angle:  85, from: 25, to: 50 },
+  { char: 's', accent: ACCENTS[1], angle: 110, from: 50, to: 75 },
   { char: ' ' },
   { char: 'C', accent: ACCENTS[5], angle: 125, from: 45, to: 70 },
   { char: 'l', accent: ACCENTS[3], angle:  90, from: 20, to: 50 },
@@ -44,7 +47,7 @@ export default function LogoText({ className }: { className?: string }) {
   return (
     <span
       className={`${nunito.className} ${className ?? ''}`}
-      aria-label="Gifu Pole Vault Club"
+      aria-label="Gifu Pole Vaulters Club"
     >
       {CHARS.map((c, i) => {
         if (c.char === ' ') {
