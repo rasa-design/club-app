@@ -1,11 +1,100 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" fill="white"/>
+  <defs>
+    <!-- Gifu Pole -->
+    <linearGradient id="g-G" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#7C5CBF"/>
+      <stop offset="55%" stop-color="#7C5CBF"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-i" x1="1" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#F4A62A"/>
+      <stop offset="55%" stop-color="#F4A62A"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-f" x1="0" y1="1" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#3BBFAD"/>
+      <stop offset="55%" stop-color="#3BBFAD"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-u" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#E85FA0"/>
+      <stop offset="55%" stop-color="#E85FA0"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-P" x1="1" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#F7D33E"/>
+      <stop offset="55%" stop-color="#F7D33E"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-o" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#5BB8F5"/>
+      <stop offset="55%" stop-color="#5BB8F5"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-l" x1="1" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#E8503A"/>
+      <stop offset="55%" stop-color="#E8503A"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-e" x1="0" y1="1" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#4CAF82"/>
+      <stop offset="55%" stop-color="#4CAF82"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <!-- Vault Club -->
+    <linearGradient id="g-V" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#7C5CBF"/>
+      <stop offset="55%" stop-color="#7C5CBF"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-a" x1="1" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#3BBFAD"/>
+      <stop offset="55%" stop-color="#3BBFAD"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-u2" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#F7D33E"/>
+      <stop offset="55%" stop-color="#F7D33E"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-l2" x1="1" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#E8503A"/>
+      <stop offset="55%" stop-color="#E8503A"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-t" x1="0" y1="1" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#F4A62A"/>
+      <stop offset="55%" stop-color="#F4A62A"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-C" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#5BB8F5"/>
+      <stop offset="55%" stop-color="#5BB8F5"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-l3" x1="1" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#E85FA0"/>
+      <stop offset="55%" stop-color="#E85FA0"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-u3" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#4CAF82"/>
+      <stop offset="55%" stop-color="#4CAF82"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+    <linearGradient id="g-b" x1="1" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#7C5CBF"/>
+      <stop offset="55%" stop-color="#7C5CBF"/>
+      <stop offset="100%" stop-color="#71717a"/>
+    </linearGradient>
+  </defs>
   <text font-family="Nunito, sans-serif" font-weight="700" font-size="88" text-anchor="middle">
     <tspan x="256" y="218">
-      <tspan fill="#7C5CBF">G</tspan><tspan fill="#F4A62A">i</tspan><tspan fill="#3BBFAD">f</tspan><tspan fill="#E85FA0">u</tspan><tspan fill="#71717a"> </tspan><tspan fill="#F7D33E">P</tspan><tspan fill="#5BB8F5">o</tspan><tspan fill="#E8503A">l</tspan><tspan fill="#4CAF82">e</tspan>
+      <tspan fill="url(#g-G)">G</tspan><tspan fill="url(#g-i)">i</tspan><tspan fill="url(#g-f)">f</tspan><tspan fill="url(#g-u)">u</tspan><tspan fill="#71717a"> </tspan><tspan fill="url(#g-P)">P</tspan><tspan fill="url(#g-o)">o</tspan><tspan fill="url(#g-l)">l</tspan><tspan fill="url(#g-e)">e</tspan>
     </tspan>
     <tspan x="256" y="328">
-      <tspan fill="#7C5CBF">V</tspan><tspan fill="#3BBFAD">a</tspan><tspan fill="#F7D33E">u</tspan><tspan fill="#E8503A">l</tspan><tspan fill="#F4A62A">t</tspan><tspan fill="#71717a"> </tspan><tspan fill="#5BB8F5">C</tspan><tspan fill="#E85FA0">l</tspan><tspan fill="#4CAF82">u</tspan><tspan fill="#7C5CBF">b</tspan>
+      <tspan fill="url(#g-V)">V</tspan><tspan fill="url(#g-a)">a</tspan><tspan fill="url(#g-u2)">u</tspan><tspan fill="url(#g-l2)">l</tspan><tspan fill="url(#g-t)">t</tspan><tspan fill="#71717a"> </tspan><tspan fill="url(#g-C)">C</tspan><tspan fill="url(#g-l3)">l</tspan><tspan fill="url(#g-u3)">u</tspan><tspan fill="url(#g-b)">b</tspan>
     </tspan>
   </text>
 </svg>
