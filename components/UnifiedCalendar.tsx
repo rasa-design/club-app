@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil, Video } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
@@ -112,6 +112,70 @@ export default function UnifiedCalendar({
   // 記録入力の一時state: { [memberId]: { m: string; cm: string } }
   const [recordInputs, setRecordInputs] = useState<Record<string, { m: string; cm: string }>>({})
 
+      // ▼▼▼ 追加：state ▼▼▼
+const [videoDialog, setVideoDialog] = useState<Member | null>(null)
+const [videos, setVideos] = useState<Record<string, string[]>>({})
+const [newUrl, setNewUrl] = useState('')
+
+// 動画機能は一旦延期。実装再開時はコメントを外す
+// const toEmbedUrl = (url: string) => {
+//   try {
+//     const u = new URL(url)
+//
+//     // youtu.be
+//     if (u.hostname.includes('youtu.be')) {
+//       return `https://www.youtube.com/embed/${u.pathname.slice(1)}`
+//     }
+//
+//     // youtube.com/watch?v=
+//     if (u.searchParams.get('v')) {
+//       return `https://www.youtube.com/embed/${u.searchParams.get('v')}`
+//     }
+//
+//     // shorts / live 対応
+//     const paths = u.pathname.split('/')
+//     const id = paths[2]
+//     if (['shorts', 'live', 'embed'].includes(paths[1]) && id) {
+//       return `https://www.youtube.com/embed/${id}`
+//     }
+//
+//     return url
+//   } catch {
+//     return url
+//   }
+// }
+
+// 動画機能は一旦延期。実装再開時はコメントを外す
+// const addVideo = () => {
+//   if (!videoDialog || !newUrl) return
+//
+//   if (!newUrl.includes('youtube') && !newUrl.includes('youtu.be')) {
+//     alert('YouTubeのURLを入力してください')
+//     return
+//   }
+//
+//   const embedUrl = toEmbedUrl(newUrl)
+//
+//   console.log('入力URL:', newUrl)
+//   console.log('変換後URL:', embedUrl)
+//
+//   setVideos(prev => ({
+//     ...prev,
+//     [videoDialog.id]: [...(prev[videoDialog.id] || []), embedUrl],
+//   }))
+//
+//   setNewUrl('')
+// }
+
+const removeVideo = (memberId: string, index: number) => {
+  setVideos(prev => {
+    const list = [...(prev[memberId] || [])]
+    list.splice(index, 1)
+    return { ...prev, [memberId]: list }
+  })
+}
+// ▲▲▲ 追加ここまで ▲▲▲
+
   // 参加チェック後のポール登録誘導確認: { event }
   const [polePrompt, setPolePrompt] = useState<{ event: Event } | null>(null)
 
@@ -137,7 +201,8 @@ export default function UnifiedCalendar({
     const dayEvents = getEventsOnDate(events, date)
     const hasEvent = dayEvents.length > 0
 
-    // 練習日か大会のある日、または大会追加のためにどのユーザーもタップ可能
+    // 一般ユーザーは練習日か大会のある日のみタップ可能
+    if (!isAdmin && !hasPractice && !hasEvent) return
 
     if (hasPractice) {
       const defaultStart = slots[0]?.start ?? '09:00'
@@ -154,8 +219,8 @@ export default function UnifiedCalendar({
       setPracticeState(state)
     }
 
-    // 練習も大会もない日をタップした場合は直接追加フォームを開く
-    const shouldOpenAddForm = !hasPractice && !hasEvent
+    // 管理者が練習も大会もない日をタップした場合は直接追加フォームを開く
+    const shouldOpenAddForm = isAdmin && !hasPractice && !hasEvent
     setAddForm(shouldOpenAddForm ? {
       title: '',
       date,
@@ -378,11 +443,11 @@ export default function UnifiedCalendar({
   const selectedDow = selectedDate ? new Date(sy, sm - 1, sd).getDay() : 0
 
   const hasPracticeTab = selectedSlots.length > 0
-  const hasEventTab = selectedEvents.length > 0 || true
+  const hasEventTab = selectedEvents.length > 0 || isAdmin
   const hasBothTabs = hasPracticeTab && hasEventTab
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="space-y-4">
       {/* 月ナビゲーション */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="icon" onClick={prevMonth}>
@@ -395,13 +460,12 @@ export default function UnifiedCalendar({
       </div>
 
       {/* カレンダーグリッド */}
-      <div className="border rounded-xl overflow-hidden px-1 pt-3 pb-3">
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 border rounded-xl overflow-hidden">
         {DAYS_JA.map((d, i) => (
           <div
             key={d}
             className={cn(
-              'text-center text-xs font-semibold pb-2 text-muted-foreground',
+              'text-center text-xs font-semibold py-2 text-muted-foreground',
               i === 0 && 'text-destructive',
               i === 6 && 'text-primary',
             )}
@@ -419,7 +483,7 @@ export default function UnifiedCalendar({
           const dayEvents = getEventsOnDate(events, date)
           const hasEvent = dayEvents.length > 0
           const isToday = date === todayStr
-          const tappable = true
+          const tappable = hasPractice || hasEvent || isAdmin
 
           return (
             <button
@@ -441,20 +505,17 @@ export default function UnifiedCalendar({
               )}>
                 {day}
               </span>
-              <div className="flex gap-0.5 items-center flex-wrap justify-center max-w-full">
+              <div className="flex gap-0.5 items-center">
                 {hasPractice && <span className="w-1.5 h-1.5 rounded-full bg-[#3BBFAD]" />}
-                {dayEvents.map(e => (
-                  <span key={e.id} className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                ))}
+                {hasEvent && <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
               </div>
             </button>
           )
         })}
       </div>
-      </div>
 
       {/* 凡例 */}
-      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground pb-4">
+      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-[#3BBFAD] inline-block" />
           練習日
@@ -467,7 +528,7 @@ export default function UnifiedCalendar({
 
       {/* ダイアログ */}
       <Dialog open={selectedDate !== null} onOpenChange={open => { if (!open) { setSelectedDate(null); setAddForm(null) } }}>
-        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">
               {selectedDate && `${sm}/${sd}（${DAYS_JA[selectedDow]}）`}
@@ -538,22 +599,26 @@ export default function UnifiedCalendar({
                     </div>
                   </button>
                   {state.attended && (
-                    <div className="flex items-center gap-2 px-3 pb-3 pl-12">
-                      <Input
-                        type="time"
-                        value={state.start}
-                        onChange={e => updateTime(member.id, 'start', e.target.value)}
-                        className="flex-1 h-9 text-sm"
-                      />
-                      <span className="text-muted-foreground text-sm shrink-0">〜</span>
-                      <Input
-                        type="time"
-                        value={state.end}
-                        onChange={e => updateTime(member.id, 'end', e.target.value)}
-                        className="flex-1 h-9 text-sm"
-                      />
-                    </div>
-                  )}
+  <div className="space-y-2 px-3 pb-3 pl-12">
+
+    <div className="flex items-center gap-2">
+      <Input
+        type="time"
+        value={state.start}
+        onChange={e => updateTime(member.id, 'start', e.target.value)}
+        className="flex-1 h-9 text-sm"
+      />
+      <span className="text-muted-foreground text-sm shrink-0">〜</span>
+      <Input
+        type="time"
+        value={state.end}
+        onChange={e => updateTime(member.id, 'end', e.target.value)}
+        className="flex-1 h-9 text-sm"
+      />
+    </div>
+
+  </div>
+)}
                 </div>
               )
             })}
@@ -666,8 +731,8 @@ export default function UnifiedCalendar({
                   )
                 })}
 
-                {/* 大会追加 */}
-                {!addForm && (
+                {/* 管理者：大会追加（この日に大会がない場合のみ） */}
+                {isAdmin && selectedEvents.length === 0 && !addForm && (
                   <Button
                     variant="outline"
                     className="w-full"
@@ -678,7 +743,7 @@ export default function UnifiedCalendar({
                   </Button>
                 )}
 
-                {addForm && (
+                {isAdmin && addForm && (
                   <div className="rounded-xl border p-4 space-y-3">
                     <p className="text-sm font-medium">大会を追加</p>
                     <div className="space-y-1">
@@ -761,6 +826,11 @@ export default function UnifiedCalendar({
                   </div>
                 )}
 
+                {selectedEvents.length === 0 && !addForm && !isAdmin && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    この日の大会はありません
+                  </p>
+                )}
               </div>
             )}
 
@@ -812,22 +882,33 @@ export default function UnifiedCalendar({
             const isEventDay = e.date <= todayStr
             return (
               <Card
-                key={e.id}
-                className="border-l-4 border-l-orange-400 cursor-pointer hover:bg-muted/30 transition-colors"
-                onClick={() => {
-                  if (isEventDay) {
-                    const attendingIds = eventAttendance[e.id] ?? []
-                    const inputs: Record<string, { m: string; cm: string }> = {}
-                    attendingIds.forEach(mid => {
-                      inputs[mid] = parseRecord(eventRecords[e.id]?.[mid] ?? '')
-                    })
-                    setRecordInputs(inputs)
-                    setRecordDialog(e)
-                  } else {
-                    setPoleDialog({ event: e }); setExpandedMemberId(null)
-                  }
-                }}
-              >
+  key={e.id}
+  className="border-l-4 border-l-orange-400 cursor-pointer hover:bg-muted/30 transition-colors"
+  onClick={(ev) => {
+  const target = ev.target as HTMLElement
+
+  // iframe or その周辺なら無視
+  if (
+    target.closest('iframe') ||
+    target.closest('.aspect-video')
+  ) {
+    return
+  }
+
+  if (isEventDay) {
+    const attendingIds = eventAttendance[e.id] ?? []
+    const inputs: Record<string, { m: string; cm: string }> = {}
+    attendingIds.forEach(mid => {
+      inputs[mid] = parseRecord(eventRecords[e.id]?.[mid] ?? '')
+    })
+    setRecordInputs(inputs)
+    setRecordDialog(e)
+  } else {
+    setPoleDialog({ event: e })
+    setExpandedMemberId(null)
+  }
+}}
+>
                 <CardContent className="py-3 px-4">
                   <div className="space-y-1">
                     <div className="flex items-center justify-between gap-2">
@@ -898,7 +979,7 @@ export default function UnifiedCalendar({
 
       {/* 記録入力ダイアログ */}
       <Dialog open={recordDialog !== null} onOpenChange={open => !open && setRecordDialog(null)}>
-        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">{recordDialog?.title}</DialogTitle>
             <p className="text-xs text-muted-foreground mt-1">参加メンバーの最高跳躍記録を入力してください</p>
@@ -925,7 +1006,8 @@ export default function UnifiedCalendar({
                       {member.name}
                       <span className="text-xs text-muted-foreground font-normal ml-2">{gradeLabel(member.grade)}</span>
                     </Label>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-1">
                       <Input
                         inputMode="numeric"
                         value={inputs.m}
@@ -952,7 +1034,20 @@ export default function UnifiedCalendar({
                         className="font-mono text-right"
                       />
                       <span className="shrink-0 text-sm">cm</span>
+                      </div>
+                      {/* ▼▼▼ 追加 ▼▼▼ */}
+                      {/* 動画機能は一旦延期。実装再開時はdisabledとコメントを外す */}
+                      <Button
+                        variant="outline"
+                        size="default"
+                        disabled
+                        // onClick={() => setVideoDialog(member)}
+                      >
+                        <Video className="h-4 w-4" />
+                      </Button>
+                      {/* ▲▲▲ 追加 ▲▲▲ */}
                     </div>
+ 
                   </div>
                 )
               })
@@ -1001,7 +1096,7 @@ export default function UnifiedCalendar({
 
       {/* 大会編集ダイアログ */}
       <Dialog open={editDialog !== null} onOpenChange={open => !open && setEditDialog(null)}>
-        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">大会を編集</DialogTitle>
           </DialogHeader>
@@ -1258,6 +1353,87 @@ export default function UnifiedCalendar({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ▼▼▼ 動画ダイアログ ▼▼▼ */}
+<Dialog open={videoDialog !== null} onOpenChange={open => !open && setVideoDialog(null)}>
+  <DialogContent className="pointer-events-auto max-h-[85vh] overflow-y-auto"
+  onPointerDown={(e) => e.stopPropagation()}>
+
+    <DialogHeader>
+      <DialogTitle>
+        {videoDialog?.name} の動画
+      </DialogTitle>
+    </DialogHeader>
+
+    <div className="space-y-4">
+
+      {/* 未登録 */}
+      {videoDialog && (videos[videoDialog.id]?.length ?? 0) === 0 && (
+        <p className="text-sm text-muted-foreground">
+          動画がまだ登録されていません
+        </p>
+      )}
+
+      {/* 動画一覧 */}
+      {videoDialog && (videos[videoDialog.id] || []).map((url, i) => (
+        <div key={i} className="space-y-2">
+          <div
+  className="aspect-video"
+  onClick={(e) => {
+    e.stopPropagation()
+  }}
+  onMouseDown={(e) => {
+    e.stopPropagation()
+  }}
+  onTouchStart={(e) => {
+    e.stopPropagation()
+  }}
+>
+<iframe
+  src={url}
+  className="w-full h-full rounded-lg"
+  style={{ pointerEvents: 'auto' }}
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+/>
+</div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive"
+            onClick={() => removeVideo(videoDialog.id, i)}
+          >
+            削除
+          </Button>
+        </div>
+      ))}
+
+      {/* 追加UI */}
+      <div className="space-y-2 pt-3 border-t">
+        <p className="text-xs text-muted-foreground">動画を追加</p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="YouTubeのURLを貼る"
+            value={newUrl}
+            onChange={(e) => setNewUrl(e.target.value)}
+          />
+          {/* 動画機能は一旦延期。実装再開時はdisabledとコメントを外す */}
+          <Button
+            variant="default"
+            size="default"
+            disabled
+            // onClick={addVideo}
+            >
+            追加
+          </Button>
+        </div>
+      </div>
+
+    </div>
+  </DialogContent>
+</Dialog>
+{/* ▲▲▲ 動画ダイアログ ▲▲▲ */}
     </div>
   )
 }

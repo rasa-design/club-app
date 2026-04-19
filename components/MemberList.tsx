@@ -11,7 +11,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import MemberRecordChart from '@/components/MemberRecordChart'
 
 type SortOrder = 'grade' | 'name'
 
@@ -32,6 +39,7 @@ export default function MemberList({
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [sortOrder, setSortOrder] = useState<SortOrder>('grade')
   const [selectableYears, setSelectableYears] = useState<number[]>([initialYear])
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const isFirstRender = useRef(true)
 
   useEffect(() => {
@@ -117,7 +125,10 @@ export default function MemberList({
                     </span>
                   </div>
                 )}
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border">
+                <div
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border active:bg-muted cursor-pointer"
+                  onClick={() => setSelectedMember(member)}
+                >
                   {sortOrder === 'name' && (
                     <span className="text-xs text-muted-foreground w-10 shrink-0 text-right">
                       {gradeLabel(member.grade)}
@@ -134,6 +145,22 @@ export default function MemberList({
       <p className="text-xs text-muted-foreground text-center">
         {sorted.length}名登録
       </p>
+
+      {/* メンバー記録ダイアログ */}
+      <Dialog open={selectedMember !== null} onOpenChange={open => !open && setSelectedMember(null)}>
+        <DialogContent className="max-h-[85vh] flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>{selectedMember?.name} の大会記録</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {selectedMember && (
+              <MemberRecordChart
+                memberId={selectedMember.id}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
