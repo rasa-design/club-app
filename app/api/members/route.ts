@@ -23,6 +23,29 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(newMember, { status: 201 })
 }
 
+export async function PATCH(req: NextRequest) {
+  const session = await getSession()
+  if (!session.isAdmin) return NextResponse.json({ error: '権限がありません' }, { status: 403 })
+
+  const { id, year, name, kana, grade }: { id: string; year: number; name?: string; kana?: string; grade?: number } = await req.json()
+  const data = await getMembersData()
+  const yearKey = String(year)
+  const members = data[yearKey] ?? []
+  const idx = members.findIndex(m => m.id === id)
+  if (idx === -1) return NextResponse.json({ error: 'メンバーが見つかりません' }, { status: 404 })
+
+  const updated: Member = {
+    ...members[idx],
+    ...(name  !== undefined ? { name }  : {}),
+    ...(kana  !== undefined ? { kana: kana.trim() || undefined } : {}),
+    ...(grade !== undefined ? { grade } : {}),
+  }
+  members[idx] = updated
+  data[yearKey] = members
+  await saveMembersData(data)
+  return NextResponse.json(updated)
+}
+
 export async function DELETE(req: NextRequest) {
   const session = await getSession()
   if (!session.isAdmin) return NextResponse.json({ error: '権限がありません' }, { status: 403 })
