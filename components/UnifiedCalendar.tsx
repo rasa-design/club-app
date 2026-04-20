@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil, Video } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil, Video, WandSparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
@@ -116,6 +116,7 @@ export default function UnifiedCalendar({
 const [videoDialog, setVideoDialog] = useState<Member | null>(null)
 const [videos, setVideos] = useState<Record<string, string[]>>({})
 const [newUrl, setNewUrl] = useState('')
+const [poleListDialog, setPoleListDialog] = useState<{ member: Member; eventId: string } | null>(null)
 
 // 動画機能は一旦延期。実装再開時はコメントを外す
 // const toEmbedUrl = (url: string) => {
@@ -1036,6 +1037,14 @@ const removeVideo = (memberId: string, index: number) => {
                       <span className="shrink-0 text-sm">cm</span>
                       </div>
                       {/* ▼▼▼ 追加 ▼▼▼ */}
+                      <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="default"
+                        onClick={() => setPoleListDialog({ member, eventId: recordDialog.id })}
+                      >
+                        <WandSparkles className="h-4 w-4"/>
+                      </Button>
                       {/* 動画機能は一旦延期。実装再開時はdisabledとコメントを外す */}
                       <Button
                         variant="outline"
@@ -1045,6 +1054,7 @@ const removeVideo = (memberId: string, index: number) => {
                       >
                         <Video className="h-4 w-4" />
                       </Button>
+                      </div>
                       {/* ▲▲▲ 追加 ▲▲▲ */}
                     </div>
  
@@ -1434,6 +1444,39 @@ const removeVideo = (memberId: string, index: number) => {
   </DialogContent>
 </Dialog>
 {/* ▲▲▲ 動画ダイアログ ▲▲▲ */}
+
+      {/* ▼▼▼ ポール一覧ダイアログ ▼▼▼ */}
+      <Dialog open={poleListDialog !== null} onOpenChange={open => !open && setPoleListDialog(null)}>
+        <DialogContent className="pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>
+              {poleListDialog?.member.name} のポール
+            </DialogTitle>
+          </DialogHeader>
+          {(() => {
+            if (!poleListDialog) return null
+            const assignedIds = eventPoles[poleListDialog.eventId]?.[poleListDialog.member.id] ?? []
+            const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
+            if (assignedPoles.length === 0) {
+              return (
+                <p className="text-sm text-muted-foreground py-2">
+                  割り当てられたポールはありません
+                </p>
+              )
+            }
+            return (
+              <ul className="space-y-2">
+                {assignedPoles.map(p => (
+                  <li key={p.id} className="flex items-center gap-3 rounded-md border px-4 py-3 text-sm">
+                    <span className="font-mono">{p.size}</span>
+                  </li>
+                ))}
+              </ul>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
+      {/* ▲▲▲ ポール一覧ダイアログ ▲▲▲ */}
     </div>
   )
 }
