@@ -33,6 +33,7 @@ export default function MemberEditor() {
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
+  const [kana, setKana] = useState('')
   const [grade, setGrade] = useState('7')
   const [saving, setSaving] = useState(false)
   const [addError, setAddError] = useState('')
@@ -64,12 +65,13 @@ export default function MemberEditor() {
       const res = await fetch('/api/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), grade: Number(grade), year }),
+        body: JSON.stringify({ name: name.trim(), kana: kana.trim() || undefined, grade: Number(grade), year }),
       })
       if (res.ok) {
         const m: Member = await res.json()
         setMembers((prev) => [...prev, m])
         setName('')
+        setKana('')
       } else {
         const data = await res.json().catch(() => ({}))
         setAddError(data.error ?? `エラーが発生しました（${res.status}）`)
@@ -180,6 +182,11 @@ export default function MemberEditor() {
                       <Badge variant="outline" className="ml-1.5 text-xs font-normal py-0">
                         {gradeLabel(m.grade)}
                       </Badge>
+                      {m.kana && (
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">
+                          {m.kana}
+                        </span>
+                      )}
                     </span>
                     <AlertDialog>
                       <AlertDialogTrigger
@@ -215,13 +222,22 @@ export default function MemberEditor() {
 
           {/* 追加フォーム */}
           <Card className="border-dashed">
-            <CardContent className="py-3 px-4 flex items-center gap-2">
-              <Input
-                placeholder="氏名を入力"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="flex-1"
-              />
+            <CardContent className="py-3 px-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="氏名を入力"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="flex-1"
+                />
+                <Input
+                  placeholder="ふりがな（任意）"
+                  value={kana}
+                  onChange={(e) => setKana(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+              <div className="flex items-center gap-2">
               <Select value={grade} onValueChange={(v) => v !== null && setGrade(v)}>
                 <SelectTrigger className="w-20">
                   <SelectValue>{gradeLabel(Number(grade))}</SelectValue>
@@ -234,10 +250,11 @@ export default function MemberEditor() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={add} disabled={saving || !name.trim()}>
+              <Button onClick={add} disabled={saving || !name.trim()} className="ml-auto">
                 <UserPlus className="h-4 w-4 mr-1" />
                 追加
               </Button>
+              </div>
             </CardContent>
           </Card>
           {addError && <p className="text-sm text-destructive">{addError}</p>}

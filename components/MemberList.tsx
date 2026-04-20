@@ -23,9 +23,13 @@ import MemberRecordChart from '@/components/MemberRecordChart'
 type SortOrder = 'grade' | 'name'
 
 function sortMembers(members: Member[], order: SortOrder): Member[] {
-  return [...members].sort((a, b) =>
-    order === 'name' ? a.name.localeCompare(b.name, 'ja') : a.grade - b.grade
-  )
+  return [...members].sort((a, b) => {
+    if (order === 'grade') return a.grade - b.grade
+    // 50音順: kana があればそれを優先、なければ name で機械的に比較（精度低）
+    const aKey = a.kana ?? a.name
+    const bKey = b.kana ?? b.name
+    return aKey.localeCompare(bKey, 'ja')
+  })
 }
 
 export default function MemberList({

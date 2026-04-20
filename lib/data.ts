@@ -15,6 +15,7 @@ export type Event = {
 export type Member = {
   id: string
   name: string
+  kana?: string  // ふりがな（ひらがな）。50音順ソートに使用
   grade: number // 4=小4, 5=小5, 6=小6, 7=中1, 8=中2, 9=中3, 10=高1, 11=高2, 12=高3, 13=大1, 14=大2, 15=大3, 16=大4
 }
 
