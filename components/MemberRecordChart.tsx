@@ -154,7 +154,7 @@ export default function MemberRecordChart({ memberId }: Props) {
     datasets: [{
       data: values,
       borderColor: '#6366f1', backgroundColor: '#6366f1',
-      pointRadius: 5, pointHoverRadius: 7, tension: 0.3,
+      pointRadius: 5, pointHoverRadius: 7, pointHitRadius: 24, tension: 0.3,
     }],
   }
 
