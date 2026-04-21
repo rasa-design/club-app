@@ -980,10 +980,10 @@ const removeVideo = (memberId: string, index: number) => {
 
       {/* 記録入力ダイアログ */}
       <Dialog open={recordDialog !== null} onOpenChange={open => !open && setRecordDialog(null)}>
-        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">{recordDialog?.title}</DialogTitle>
-            <p className="text-xs text-muted-foreground mt-1">参加メンバーの最高跳躍記録を入力してください</p>
+            <p className="text-xs text-muted-foreground mt-1">本大会の最高跳躍記録を入力してください</p>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 px-4 py-3 space-y-3">
             {recordDialog && (() => {
@@ -1450,7 +1450,7 @@ const removeVideo = (memberId: string, index: number) => {
         <DialogContent className="pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>
-              {poleListDialog?.member.name} のポール
+              本大会での{poleListDialog?.member.name} の使用ポール
             </DialogTitle>
           </DialogHeader>
           {(() => {
@@ -1460,7 +1460,7 @@ const removeVideo = (memberId: string, index: number) => {
             if (assignedPoles.length === 0) {
               return (
                 <p className="text-sm text-muted-foreground py-2">
-                  割り当てられたポールはありません
+                  クラブ保有のポールは使用はありません
                 </p>
               )
             }
