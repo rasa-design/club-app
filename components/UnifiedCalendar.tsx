@@ -1234,63 +1234,72 @@ const removeVideo = (memberId: string, index: number) => {
           <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
             {poleViewMode === 'member' ? (
               /* ── クラブ生軸ビュー ── */
-              members.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">登録されているメンバーがいません</p>
-              ) : members.map(member => {
+              (() => {
                 const eventId = poleDialog?.event.id ?? ''
-                const assignedIds = eventPoles[eventId]?.[member.id] ?? []
-                const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
-                const isExpanded = expandedMemberId === member.id
-
-                return (
-                  <div key={member.id} className="rounded-xl border overflow-hidden">
-                    <button
-                      className="flex items-center gap-3 w-full text-left px-3 py-3"
-                      onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium text-sm">{member.name}</span>
-                        <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
-                      </div>
-                      <div className="flex items-center gap-1 flex-wrap justify-end max-w-[55%]">
-                        {assignedPoles.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">未選択</span>
-                        ) : (
-                          assignedPoles.map(p => (
-                            <Badge key={p.id} variant="secondary" className="font-mono text-xs">{p.size}</Badge>
-                          ))
-                        )}
-                      </div>
-                    </button>
-                    {isExpanded && (
-                      <div className="border-t px-3 py-3 space-y-1.5 bg-muted/20">
-                        <p className="text-xs text-muted-foreground mb-2">使用するポールをタップして選択（複数可）</p>
-                        {poles.map(pole => {
-                          const selected = assignedIds.includes(pole.id)
-                          return (
-                            <button
-                              key={pole.id}
-                              onClick={() => togglePole(eventId, member.id, pole.id)}
-                              className={cn(
-                                'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
-                                selected ? 'border-orange-300 bg-orange-50' : 'bg-background'
-                              )}
-                            >
-                              <div className={cn(
-                                'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
-                                selected ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
-                              )}>
-                                {selected && <Check className="h-3 w-3 text-white" />}
-                              </div>
-                              <span className="font-mono text-sm font-medium">{pole.size}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
+                const attendingIds = eventAttendance[eventId] ?? []
+                const attendingMembers = members.filter(m => attendingIds.includes(m.id))
+                if (attendingMembers.length === 0) return (
+                  <p className="text-sm text-muted-foreground text-center py-4">参加登録されているメンバーがいません</p>
                 )
-              })
+                return (
+                  <>
+                    {attendingMembers.map(member => {
+                      const assignedIds = eventPoles[eventId]?.[member.id] ?? []
+                      const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
+                      const isExpanded = expandedMemberId === member.id
+                      return (
+                        <div key={member.id} className="rounded-xl border overflow-hidden">
+                          <button
+                            className="flex items-center gap-3 w-full text-left px-3 py-3"
+                            onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <span className="font-medium text-sm">{member.name}</span>
+                              <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
+                            </div>
+                            <div className="flex items-center gap-1 flex-wrap justify-end max-w-[55%]">
+                              {assignedPoles.length === 0 ? (
+                                <span className="text-xs text-muted-foreground">未選択</span>
+                              ) : (
+                                assignedPoles.map(p => (
+                                  <Badge key={p.id} variant="secondary" className="font-mono text-xs">{p.size}</Badge>
+                                ))
+                              )}
+                            </div>
+                          </button>
+                          {isExpanded && (
+                            <div className="border-t px-3 py-3 space-y-1.5 bg-muted/20">
+                              <p className="text-xs text-muted-foreground mb-2">使用するポールをタップして選択（複数可）</p>
+                              {poles.map(pole => {
+                                const selected = assignedIds.includes(pole.id)
+                                return (
+                                  <button
+                                    key={pole.id}
+                                    onClick={() => togglePole(eventId, member.id, pole.id)}
+                                    className={cn(
+                                      'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
+                                      selected ? 'border-orange-300 bg-orange-50' : 'bg-background'
+                                    )}
+                                  >
+                                    <div className={cn(
+                                      'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                                      selected ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
+                                    )}>
+                                      {selected && <Check className="h-3 w-3 text-white" />}
+                                    </div>
+                                    <span className="font-mono text-sm font-medium">{pole.size}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    <p className="text-sm text-muted-foreground text-center pt-2 pb-1">自分の名前がない場合はカレンダーから参加登録</p>
+                  </>
+                )
+              })()
             ) : (
               /* ── ポール軸ビュー ── */
               poles.length === 0 ? (
