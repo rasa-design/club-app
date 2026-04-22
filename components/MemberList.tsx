@@ -236,7 +236,7 @@ export default function MemberList({
                     <div className="flex items-center gap-1">
                       <Input
                         inputMode="numeric"
-                        className="h-7 text-sm font-mono text-right w-14"
+                        className="h-7 text-base font-mono text-right w-14"
                         value={goalInput.m}
                         onChange={e => setGoalInput(prev => ({ ...prev, m: e.target.value }))}
                         onBlur={e => setGoalInput(prev => ({ ...prev, m: toHalfWidth(e.target.value).replace(/\D/g, '') }))}
@@ -245,7 +245,7 @@ export default function MemberList({
                       <span className="text-sm shrink-0">m</span>
                       <Input
                         inputMode="numeric"
-                        className="h-7 text-sm font-mono text-right w-14"
+                        className="h-7 text-base font-mono text-right w-14"
                         value={goalInput.cm}
                         onChange={e => setGoalInput(prev => ({ ...prev, cm: e.target.value }))}
                         onBlur={e => setGoalInput(prev => ({ ...prev, cm: toHalfWidth(e.target.value).replace(/\D/g, '') }))}
