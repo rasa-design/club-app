@@ -16,7 +16,7 @@ import type { Event, EventRecords } from '@/lib/data'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
 
-type Props = { memberId: string }
+type Props = { memberId: string; goalCm?: number | null }
 
 // ── ヘルパー ─────────────────────────────────────────────────────────────
 
@@ -82,7 +82,7 @@ const manualGridPlugin: Plugin<'line'> = {
 
 // ── コンポーネント ──────────────────────────────────────────────────────
 
-export default function MemberRecordChart({ memberId }: Props) {
+export default function MemberRecordChart({ memberId, goalCm }: Props) {
   const [points,  setPoints]  = useState<ChartPoint[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -91,6 +91,31 @@ export default function MemberRecordChart({ memberId }: Props) {
   const [xTicks, setXTicks] = useState<XTickPx[]>([])
 
   const chartRef = useRef<ChartJS<'line'>>(null)
+  const goalCmRef = useRef<number | null | undefined>(goalCm)
+  useEffect(() => {
+    goalCmRef.current = goalCm
+    chartRef.current?.update('none')
+  }, [goalCm])
+
+  const goalLinePlugin = useRef<Plugin<'line'>>({
+    id: 'goalLine',
+    afterDatasetsDraw(chart) {
+      const goal = goalCmRef.current
+      if (!goal) return
+      const ys = chart.scales['y']
+      if (!ys) return
+      if (goal < ys.min || goal > ys.max) return
+      const { ctx } = chart
+      const { left, right } = chart.chartArea
+      const y = ys.getPixelForValue(goal)
+      ctx.save()
+      ctx.strokeStyle = '#3BBFAD'
+      ctx.lineWidth = 2
+      ctx.setLineDash([6, 4])
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke()
+      ctx.restore()
+    },
+  }).current
 
   // afterRender で scale のピクセル座標を読み取り HTML ラベルを更新する。
   // useRef で固定することで毎レンダーに新しいオブジェクトが生まれるのを防ぐ。
@@ -147,7 +172,8 @@ export default function MemberRecordChart({ memberId }: Props) {
   const chartWidth  = Math.max(320, points.length * minColWidth)
   const values      = points.map(p => p.value)
   const yMin        = Math.max(0, Math.floor(Math.min(...values) / 10) * 10 - 10)
-  const yMax        = Math.ceil( Math.max(...values)  / 10) * 10 + 10
+  const yMaxBase    = Math.max(...values, goalCm ?? 0)
+  const yMax        = Math.ceil(yMaxBase / 10) * 10 + 10
 
   const lineData = {
     labels: points.map(p => p.label),
@@ -225,7 +251,7 @@ export default function MemberRecordChart({ memberId }: Props) {
                 ref={chartRef}
                 data={lineData}
                 options={dataOptions}
-                plugins={[manualGridPlugin, readScalesPlugin]}
+                plugins={[manualGridPlugin, readScalesPlugin, goalLinePlugin]}
               />
             </div>
           </div>

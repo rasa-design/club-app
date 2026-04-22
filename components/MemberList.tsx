@@ -313,6 +313,10 @@ export default function MemberList({
             {selectedMember && (
               <MemberRecordChart
                 memberId={selectedMember.id}
+                goalCm={goals[selectedMember.id] ? (() => {
+                  const { m, cm } = parseRecord(goals[selectedMember.id])
+                  return m && cm ? Number(m) * 100 + Number(cm) : null
+                })() : null}
               />
             )}
           </div>
