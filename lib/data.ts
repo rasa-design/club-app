@@ -149,3 +149,14 @@ export async function getEventRecords(): Promise<EventRecords> {
 export async function saveEventRecords(data: EventRecords): Promise<void> {
   return writeStorage('event-records', data)
 }
+
+// 今シーズン目標: { [memberId]: string }  例: "3m10cm"
+export type MemberGoals = Record<string, string>
+
+export async function getMemberGoals(): Promise<MemberGoals> {
+  return readStorage<MemberGoals>('member-goals', {})
+}
+
+export async function saveMemberGoals(data: MemberGoals): Promise<void> {
+  return writeStorage('member-goals', data)
+}
