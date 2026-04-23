@@ -3,6 +3,7 @@ import { Noto_Sans_JP } from 'next/font/google'
 import './globals.css'
 import Nav from '@/components/Nav'
 import AutoRefresh from '@/components/AutoRefresh'
+import UpdateNoticeDialog from '@/components/UpdateNoticeDialog'
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ja" className={notoSansJP.variable}>
       <body className="bg-background min-h-screen">
         <AutoRefresh />
+        <UpdateNoticeDialog />
         <Nav />
         <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
       </body>

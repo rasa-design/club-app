@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import LogoText from '@/components/LogoText'
+import { useHasNewUpdates } from '@/hooks/useHasNewUpdates'
 
 const links = [
   { href: '/',         label: 'ホーム',                   color: 'var(--primary)' },
@@ -15,11 +16,13 @@ const links = [
   { href: '/members',  label: 'クラブ生一覧',             color: '#7C5CBF' },
   { href: '/poles',    label: 'ポール一覧',               color: '#4B7BEC' },
   { href: '/admin',    label: '管理者メニュー',           color: '#F7D33E' },
+  { href: '/updates',  label: 'アップデート情報',         color: '#6B7280' },
 ]
 
 export default function Nav() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const hasNewUpdates = useHasNewUpdates()
 
   return (
     <>
@@ -32,25 +35,30 @@ export default function Nav() {
               <LogoText className="font-bold text-xl tracking-tight" />
             </Link>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setOpen((v) => !v)}
-            aria-label={open ? 'メニューを閉じる' : 'メニューを開く'}
-          >
-            <Menu
-              className={cn(
-                'h-5 w-5 absolute transition-all duration-200',
-                open ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'
-              )}
-            />
-            <X
-              className={cn(
-                'h-5 w-5 absolute transition-all duration-200',
-                open ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'
-              )}
-            />
-          </Button>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpen((v) => !v)}
+              aria-label={open ? 'メニューを閉じる' : 'メニューを開く'}
+            >
+              <Menu
+                className={cn(
+                  'h-5 w-5 absolute transition-all duration-200',
+                  open ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'
+                )}
+              />
+              <X
+                className={cn(
+                  'h-5 w-5 absolute transition-all duration-200',
+                  open ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'
+                )}
+              />
+            </Button>
+            {hasNewUpdates && !open && (
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 pointer-events-none" />
+            )}
+          </div>
         </div>
       </header>
 
@@ -83,7 +91,7 @@ export default function Nav() {
               href={l.href}
               onClick={() => setOpen(false)}
               className={cn(
-                'px-3 py-3 rounded-lg text-sm font-medium transition-colors',
+                'px-3 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                 pathname === l.href
                   ? 'bg-muted font-semibold'
                   : 'text-foreground hover:bg-muted'
@@ -91,6 +99,9 @@ export default function Nav() {
               style={pathname === l.href ? { color: l.color } : undefined}
             >
               {l.label}
+              {l.href === '/updates' && hasNewUpdates && (
+                <span className="text-[10px] font-semibold bg-red-500 text-white rounded-full px-1.5 py-0 leading-4">New</span>
+              )}
             </Link>
           ))}
         </nav>

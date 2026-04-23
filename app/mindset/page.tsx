@@ -26,10 +26,15 @@ const items = [
   },
 ]
 
+import { Heart } from 'lucide-react'
+
 export default function MindsetPage() {
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-800">マインドセット</h2>
+      <div className="flex items-center gap-2">
+        <Heart className="h-5 w-5 shrink-0" style={{ color: '#E85FA0' }} />
+        <h2 className="text-xl font-bold text-gray-800">マインドセット</h2>
+      </div>
       <div className="space-y-3">
         {items.map((item) => (
           <div key={item.num} className="rounded-lg border bg-card p-4 space-y-1.5">

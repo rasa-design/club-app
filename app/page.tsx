@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import HeroAnimatedTextLoader from '@/components/HeroAnimatedTextLoader'
 import { CalendarCheck2, Lock, Heart, Users, WandSparkles } from 'lucide-react'
+import UpdatesMenuItem from '@/components/UpdatesMenuItem'
 import type { LucideIcon } from 'lucide-react'
 
 const menuItems: { href: string; icon: LucideIcon; iconColor: string; label: string; desc: string; full?: boolean }[] = [
@@ -10,7 +11,7 @@ const menuItems: { href: string; icon: LucideIcon; iconColor: string; label: str
   { href: '/mindset',  icon: Heart,          iconColor: '#E85FA0', label: 'マインドセット',         desc: '本番で力を発揮するために' },
   { href: '/members',  icon: Users,          iconColor: '#7C5CBF', label: 'クラブ生一覧',           desc: '在籍メンバーを確認' },
   { href: '/poles',    icon: WandSparkles,   iconColor: '#E8503A', label: 'ポール一覧',             desc: 'クラブ保有ポールを確認' },
-  { href: '/admin',    icon: Lock,           iconColor: '#F7D33E', label: '管理者メニュー',         desc: '※コーチ・会計係専用', full: true },
+  { href: '/admin',    icon: Lock,           iconColor: '#F7D33E', label: '管理者メニュー',         desc: '※コーチ・会計係専用' },
 ]
 
 export default function Home() {
@@ -34,7 +35,7 @@ export default function Home() {
         {menuItems.map((item) => {
           const Icon = item.icon
           return (
-            <Link key={item.href} href={item.href} className={item.full ? 'sm:col-span-2' : ''}>
+            <Link key={item.href} href={item.href}>
               <Card className="shadow-sm hover:shadow-md hover:bg-muted/40 transition-all duration-200 cursor-pointer h-full">
                 <CardContent className="flex items-center gap-4 py-5">
                   <Icon
@@ -50,6 +51,7 @@ export default function Home() {
             </Link>
           )
         })}
+        <UpdatesMenuItem />
       </div>
 
       {/* フッターロゴ */}
