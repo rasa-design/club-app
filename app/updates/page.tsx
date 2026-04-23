@@ -1,5 +1,7 @@
 import { Megaphone } from 'lucide-react'
 import UpdateList from '@/components/UpdateList'
+import { readFile } from 'fs/promises'
+import path from 'path'
 
 type UpdateEntry = {
   id: string
@@ -9,11 +11,9 @@ type UpdateEntry = {
 }
 
 async function getHistory(): Promise<UpdateEntry[]> {
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000'
-  const res = await fetch(`${baseUrl}/update-history.json`, { cache: 'no-store' })
-  return res.json()
+  const filePath = path.join(process.cwd(), 'public', 'update-history.json')
+  const json = await readFile(filePath, 'utf-8')
+  return JSON.parse(json)
 }
 
 export default async function UpdatesPage() {
