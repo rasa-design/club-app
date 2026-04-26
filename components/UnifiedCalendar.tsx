@@ -202,8 +202,7 @@ const removeVideo = (memberId: string, index: number) => {
     const dayEvents = getEventsOnDate(events, date)
     const hasEvent = dayEvents.length > 0
 
-    // 一般ユーザーは練習日か大会のある日のみタップ可能
-    if (!isAdmin && !hasPractice && !hasEvent) return
+    // 練習も大会もない日でも大会登録のためタップ可能
 
     if (hasPractice) {
       const defaultStart = slots[0]?.start ?? '09:00'
@@ -220,8 +219,8 @@ const removeVideo = (memberId: string, index: number) => {
       setPracticeState(state)
     }
 
-    // 管理者が練習も大会もない日をタップした場合は直接追加フォームを開く
-    const shouldOpenAddForm = isAdmin && !hasPractice && !hasEvent
+    // 練習も大会もない日をタップした場合は直接追加フォームを開く
+    const shouldOpenAddForm = !hasPractice && !hasEvent
     setAddForm(shouldOpenAddForm ? {
       title: '',
       date,
@@ -444,7 +443,7 @@ const removeVideo = (memberId: string, index: number) => {
   const selectedDow = selectedDate ? new Date(sy, sm - 1, sd).getDay() : 0
 
   const hasPracticeTab = selectedSlots.length > 0
-  const hasEventTab = selectedEvents.length > 0 || isAdmin
+  const hasEventTab = true
   const hasBothTabs = hasPracticeTab && hasEventTab
 
   return (
@@ -484,7 +483,7 @@ const removeVideo = (memberId: string, index: number) => {
           const dayEvents = getEventsOnDate(events, date)
           const hasEvent = dayEvents.length > 0
           const isToday = date === todayStr
-          const tappable = hasPractice || hasEvent || isAdmin
+          const tappable = true
 
           return (
             <button
@@ -732,8 +731,8 @@ const removeVideo = (memberId: string, index: number) => {
                   )
                 })}
 
-                {/* 管理者：大会追加（この日に大会がない場合のみ） */}
-                {isAdmin && selectedEvents.length === 0 && !addForm && (
+                {/* 大会追加（この日に大会がない場合のみ） */}
+                {selectedEvents.length === 0 && !addForm && (
                   <Button
                     variant="outline"
                     className="w-full"
@@ -744,7 +743,7 @@ const removeVideo = (memberId: string, index: number) => {
                   </Button>
                 )}
 
-                {isAdmin && addForm && (
+                {addForm && (
                   <div className="rounded-xl border p-4 space-y-3">
                     <p className="text-sm font-medium">大会を追加</p>
                     <div className="space-y-1">
@@ -827,11 +826,6 @@ const removeVideo = (memberId: string, index: number) => {
                   </div>
                 )}
 
-                {selectedEvents.length === 0 && !addForm && !isAdmin && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    この日の大会はありません
-                  </p>
-                )}
               </div>
             )}
 
