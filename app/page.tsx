@@ -6,11 +6,14 @@ import { CalendarCheck2, Lock, Heart, Users, WandSparkles } from 'lucide-react'
 import UpdatesMenuItem from '@/components/UpdatesMenuItem'
 import type { LucideIcon } from 'lucide-react'
 
-const menuItems: { href: string; icon: LucideIcon; iconColor: string; label: string; desc: string; full?: boolean }[] = [
+const menuItemsBefore: { href: string; icon: LucideIcon; iconColor: string; label: string; desc: string }[] = [
   { href: '/payments', icon: CalendarCheck2, iconColor: '#3BBFAD', label: '練習日/大会カレンダー', desc: '日程の確認と参加登録' },
-  { href: '/mindset',  icon: Heart,          iconColor: '#E85FA0', label: 'マインドセット',         desc: '本番で力を発揮するために' },
   { href: '/members',  icon: Users,          iconColor: '#7C5CBF', label: 'クラブ生一覧',           desc: '在籍メンバーを確認' },
   { href: '/poles',    icon: WandSparkles,   iconColor: '#E8503A', label: 'ポール一覧',             desc: 'クラブ保有ポールを確認' },
+]
+
+const menuItemsAfter: { href: string; icon: LucideIcon; iconColor: string; label: string; desc: string }[] = [
+  { href: '/mindset',  icon: Heart,          iconColor: '#E85FA0', label: 'マインドセット',         desc: '本番で力を発揮するために' },
   { href: '/admin',    icon: Lock,           iconColor: '#F7D33E', label: '管理者メニュー',         desc: '※コーチ・会計係専用' },
 ]
 
@@ -32,16 +35,13 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {menuItems.map((item) => {
+        {menuItemsBefore.map((item) => {
           const Icon = item.icon
           return (
             <Link key={item.href} href={item.href}>
               <Card className="shadow-sm hover:shadow-md hover:bg-muted/40 transition-all duration-200 cursor-pointer h-full">
                 <CardContent className="flex items-center gap-4 py-5">
-                  <Icon
-                    className="h-7 w-7 shrink-0"
-                    style={{ color: item.iconColor }}
-                  />
+                  <Icon className="h-7 w-7 shrink-0" style={{ color: item.iconColor }} />
                   <div>
                     <div className="font-semibold text-base">{item.label}</div>
                     <div className="text-sm text-muted-foreground mt-0.5">{item.desc}</div>
@@ -52,6 +52,22 @@ export default function Home() {
           )
         })}
         <UpdatesMenuItem />
+        {menuItemsAfter.map((item) => {
+          const Icon = item.icon
+          return (
+            <Link key={item.href} href={item.href}>
+              <Card className="shadow-sm hover:shadow-md hover:bg-muted/40 transition-all duration-200 cursor-pointer h-full">
+                <CardContent className="flex items-center gap-4 py-5">
+                  <Icon className="h-7 w-7 shrink-0" style={{ color: item.iconColor }} />
+                  <div>
+                    <div className="font-semibold text-base">{item.label}</div>
+                    <div className="text-sm text-muted-foreground mt-0.5">{item.desc}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          )
+        })}
       </div>
 
       {/* フッターロゴ */}
