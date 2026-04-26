@@ -731,8 +731,8 @@ const removeVideo = (memberId: string, index: number) => {
                   )
                 })}
 
-                {/* 大会追加（この日に大会がない場合のみ） */}
-                {selectedEvents.length === 0 && !addForm && (
+                {/* 大会追加 */}
+                {!addForm && (
                   <Button
                     variant="outline"
                     className="w-full"
