@@ -13,9 +13,10 @@ const links = [
   { href: '/',         label: 'ホーム',                   color: 'var(--primary)' },
   { href: '/payments', label: '練習日/大会カレンダー',   color: '#3BBFAD' },
   { href: '/members',  label: 'クラブ生一覧',             color: '#7C5CBF' },
-  { href: '/poles',    label: 'ポール一覧',               color: '#4B7BEC' },
+  { href: '/poles',    label: 'ポール一覧',               color: '#E8503A' },
   { href: '/updates',  label: 'アップデート情報',         color: '#6B7280' },
   { href: '/mindset',  label: 'マインドセット',           color: '#E85FA0' },
+  { href: '/links',    label: 'よく使うリンク',           color: '#F59E0B' },
   { href: '/admin',    label: '管理者メニュー',           color: '#F7D33E' },
 ]
 

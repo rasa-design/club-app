@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import HeroAnimatedTextLoader from '@/components/HeroAnimatedTextLoader'
-import { CalendarCheck2, Lock, Heart, Users, WandSparkles } from 'lucide-react'
+import { CalendarCheck2, Lock, Heart, Users, WandSparkles, Link2 } from 'lucide-react'
 import UpdatesMenuItem from '@/components/UpdatesMenuItem'
 import type { LucideIcon } from 'lucide-react'
 
@@ -12,9 +12,10 @@ const menuItemsBefore: { href: string; icon: LucideIcon; iconColor: string; labe
   { href: '/poles',    icon: WandSparkles,   iconColor: '#E8503A', label: 'ポール一覧',             desc: 'クラブ保有ポールを確認' },
 ]
 
-const menuItemsAfter: { href: string; icon: LucideIcon; iconColor: string; label: string; desc: string }[] = [
+const menuItemsAfter: { href: string; icon: LucideIcon; iconColor: string; label: string; desc: string; wide?: boolean }[] = [
   { href: '/mindset',  icon: Heart,          iconColor: '#E85FA0', label: 'マインドセット',         desc: '本番で力を発揮するために' },
-  { href: '/admin',    icon: Lock,           iconColor: '#F7D33E', label: '管理者メニュー',         desc: '※コーチ・会計係専用' },
+  { href: '/links',    icon: Link2,          iconColor: '#F59E0B', label: 'よく使うリンク',         desc: '関連サイトまとめ' },
+  { href: '/admin',    icon: Lock,           iconColor: '#F7D33E', label: '管理者メニュー',         desc: '※コーチ・会計係専用', wide: true },
 ]
 
 export default function Home() {
@@ -55,7 +56,7 @@ export default function Home() {
         {menuItemsAfter.map((item) => {
           const Icon = item.icon
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} className={item.wide ? 'sm:col-span-2' : undefined}>
               <Card className="shadow-sm hover:shadow-md hover:bg-muted/40 transition-all duration-200 cursor-pointer h-full">
                 <CardContent className="flex items-center gap-4 py-5">
                   <Icon className="h-7 w-7 shrink-0" style={{ color: item.iconColor }} />

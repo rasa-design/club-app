@@ -9,7 +9,7 @@ export default function UpdatesMenuItem() {
   const hasNewUpdates = useHasNewUpdates()
 
   return (
-    <Link href="/updates" className="sm:col-span-2">
+    <Link href="/updates">
       <Card className="shadow-sm hover:shadow-md hover:bg-muted/40 transition-all duration-200 cursor-pointer h-full">
         <CardContent className="flex items-center gap-4 py-5">
           <Megaphone className="h-7 w-7 shrink-0" style={{ color: '#6B7280' }} />
