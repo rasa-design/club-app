@@ -28,7 +28,13 @@ export default function UpdateNoticeDialog() {
       .then((data: UpdateNotice) => {
         if (!data.active) return
         const readId = localStorage.getItem(STORAGE_KEY)
-        if (readId === data.id) return
+        if (readId === data.id) {
+          // 既読済みでもバッジが残っている可能性があるためクリア
+          if ('clearAppBadge' in navigator) {
+            navigator.clearAppBadge().catch(() => {})
+          }
+          return
+        }
         setNotice(data)
         setOpen(true)
       })
@@ -38,6 +44,10 @@ export default function UpdateNoticeDialog() {
   function handleClose() {
     if (notice) {
       localStorage.setItem(STORAGE_KEY, notice.id)
+    }
+    // バッジをクリア（対応ブラウザのみ）
+    if ('clearAppBadge' in navigator) {
+      navigator.clearAppBadge().catch(() => {})
     }
     setOpen(false)
   }

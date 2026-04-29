@@ -4,6 +4,8 @@ import './globals.css'
 import Nav from '@/components/Nav'
 import AutoRefresh from '@/components/AutoRefresh'
 import UpdateNoticeDialog from '@/components/UpdateNoticeDialog'
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
+import PushSubscribePrompt from '@/components/PushSubscribePrompt'
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
@@ -29,8 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja" className={notoSansJP.variable}>
       <body className="bg-background min-h-screen">
+        <ServiceWorkerRegister />
         <AutoRefresh />
         <UpdateNoticeDialog />
+        <PushSubscribePrompt />
         <Nav />
         <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
       </body>

@@ -5,14 +5,22 @@ import { useRouter } from 'next/navigation'
 
 const POLL_INTERVAL_MS = 60_000 // 60秒ごとにバックグラウンドで再取得
 
+function checkPush() {
+  fetch('/api/push/check').catch(() => {})
+}
+
 export default function AutoRefresh() {
   const router = useRouter()
 
   useEffect(() => {
+    // 初回起動時にプッシュ通知チェック
+    checkPush()
+
     // フォーカス復帰時（ホーム画面アプリでバックグラウンドから戻った時など）に再取得
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         router.refresh()
+        checkPush()
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
