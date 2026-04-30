@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, Pole, EventPoles, EventRecords } from '@/lib/data'
 import { gradeLabel } from '@/lib/grade'
 import { toHalfWidth, parseRecord, formatRecord } from '@/lib/record'
@@ -191,6 +191,20 @@ const removeVideo = (memberId: string, index: number) => {
   const nextMonth = () => {
     if (month === 12) { setYear(y => y + 1); setMonth(1) }
     else setMonth(m => m + 1)
+  }
+
+  const touchStartX = useRef<number | null>(null)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+    const diff = touchStartX.current - e.changedTouches[0].clientX
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) nextMonth()
+      else prevMonth()
+    }
+    touchStartX.current = null
   }
 
   const daysInMonth = getDaysInMonth(year, month)
@@ -460,7 +474,11 @@ const removeVideo = (memberId: string, index: number) => {
       </div>
 
       {/* カレンダーグリッド */}
-      <div className="grid grid-cols-7 border rounded-xl overflow-hidden">
+      <div
+        className="grid grid-cols-7 border rounded-xl overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {DAYS_JA.map((d, i) => (
           <div
             key={d}
