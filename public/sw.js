@@ -7,7 +7,13 @@ self.addEventListener('push', function (event) {
     badge: '/apple-touch-icon.png',
     data: { url: data.url || '/updates' },
   }
-  event.waitUntil(self.registration.showNotification(title, options))
+  event.waitUntil(
+    self.registration.showNotification(title, options).then(() => {
+      if ('setAppBadge' in self.navigator) {
+        return self.navigator.setAppBadge(1).catch(() => {})
+      }
+    })
+  )
 })
 
 self.addEventListener('notificationclick', function (event) {

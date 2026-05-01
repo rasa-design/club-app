@@ -37,6 +37,10 @@ export default function UpdateNoticeDialog() {
         }
         setNotice(data)
         setOpen(true)
+        // 未読通知があるときホーム画面アイコンにバッジをセット
+        if ('setAppBadge' in navigator) {
+          navigator.setAppBadge(1).catch(() => {})
+        }
       })
       .catch(() => {})
   }, [])
