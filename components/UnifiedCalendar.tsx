@@ -1108,6 +1108,33 @@ const removeVideo = (memberId: string, index: number) => {
                 onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">参加対象 <span className="text-destructive">*</span></Label>
+              <div className="flex flex-wrap gap-2">
+                {GRADE_CATEGORIES.map(cat => {
+                  const selected = (editForm.targetGrades ?? []).includes(cat)
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setEditForm(f => ({
+                        ...f,
+                        targetGrades: selected
+                          ? (f.targetGrades ?? []).filter(g => g !== cat)
+                          : [...(f.targetGrades ?? []), cat]
+                      }))}
+                      className={cn(
+                        'flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors',
+                        selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-input'
+                      )}
+                    >
+                      {selected && <Check className="h-3 w-3" />}
+                      {cat}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">開始日 <span className="text-destructive">*</span></Label>
@@ -1144,33 +1171,6 @@ const removeVideo = (memberId: string, index: number) => {
                 value={editForm.description}
                 onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">参加対象 <span className="text-destructive">*</span></Label>
-              <div className="flex flex-wrap gap-2">
-                {GRADE_CATEGORIES.map(cat => {
-                  const selected = (editForm.targetGrades ?? []).includes(cat)
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setEditForm(f => ({
-                        ...f,
-                        targetGrades: selected
-                          ? (f.targetGrades ?? []).filter(g => g !== cat)
-                          : [...(f.targetGrades ?? []), cat]
-                      }))}
-                      className={cn(
-                        'flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors',
-                        selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-input'
-                      )}
-                    >
-                      {selected && <Check className="h-3 w-3" />}
-                      {cat}
-                    </button>
-                  )
-                })}
-              </div>
             </div>
           </div>
           <div className="px-4 pb-4 pt-3 border-t shrink-0 flex gap-2">
