@@ -21,7 +21,7 @@ export async function PUT(req: NextRequest) {
   const events = await getEvents()
   const idx = events.findIndex((e) => e.id === body.id)
   if (idx === -1) return NextResponse.json({ error: '見つかりません' }, { status: 404 })
-  events[idx] = body
+  events[idx] = { ...events[idx], ...body } // targetGrades など既存フィールドを保持
   await saveEvents(events)
   return NextResponse.json(body)
 }

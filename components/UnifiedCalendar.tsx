@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, Pole, EventPoles, EventRecords } from '@/lib/data'
+import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, EventAbsences, Pole, EventPoles, EventRecords, GradeCategory } from '@/lib/data'
 import { gradeLabel } from '@/lib/grade'
 import { toHalfWidth, parseRecord, formatRecord } from '@/lib/record'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,20 @@ import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
 
+const GRADE_CATEGORIES: GradeCategory[] = ['小学生', '中学生', '高校生', '一般']
+
+function getMemberGradeCategory(grade: number): GradeCategory {
+  if (grade <= 6) return '小学生'
+  if (grade <= 9) return '中学生'
+  if (grade <= 12) return '高校生'
+  return '一般'
+}
+
+function filterMembersByTargetGrades(members: Member[], targetGrades?: GradeCategory[]): Member[] {
+  if (targetGrades === undefined) return members // 未設定の既存イベントは全員対象（後方互換）
+  if (targetGrades.length === 0) return []
+  return members.filter(m => targetGrades.includes(getMemberGradeCategory(m.grade)))
+}
 
 function toDateStr(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -65,13 +79,14 @@ type MemberState = { attended: boolean; start: string; end: string }
 type PracticeState = Record<string, MemberState>
 type TabMode = 'practice' | 'event'
 
-type AddForm = { title: string; date: string; endDate: string; location: string; description: string; poleCarrier?: string; entryDeadline?: string }
+type AddForm = { title: string; date: string; endDate: string; location: string; description: string; poleCarrier?: string; entryDeadline?: string; targetGrades: GradeCategory[] }
 
 export default function UnifiedCalendar({
   initialPractices,
   initialAttendance,
   events: initialEvents,
   initialEventAttendance,
+  initialEventAbsences = {},
   poles,
   initialEventPoles,
   initialEventRecords,
@@ -82,6 +97,7 @@ export default function UnifiedCalendar({
   initialAttendance: Attendance
   events: Event[]
   initialEventAttendance: EventAttendance
+  initialEventAbsences?: EventAbsences
   poles: Pole[]
   initialEventPoles: EventPoles
   initialEventRecords: EventRecords
@@ -102,6 +118,7 @@ export default function UnifiedCalendar({
   const [addForm, setAddForm] = useState<AddForm | null>(null)
   const [addSaving, setAddSaving] = useState(false)
   const [eventPoles, setEventPoles] = useState<EventPoles>(initialEventPoles)
+  const [eventAbsences, setEventAbsences] = useState<EventAbsences>(initialEventAbsences)
   // ポール選択ダイアログ
   const [poleDialog, setPoleDialog] = useState<{ event: Event } | null>(null)
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null)
@@ -177,11 +194,8 @@ const removeVideo = (memberId: string, index: number) => {
 }
 // ▲▲▲ 追加ここまで ▲▲▲
 
-  // 参加チェック後のポール登録誘導確認: { event }
-  const [polePrompt, setPolePrompt] = useState<{ event: Event } | null>(null)
-
   const [editDialog, setEditDialog] = useState<Event | null>(null)
-  const [editForm, setEditForm] = useState<Omit<Event, 'id'>>({ title: '', date: '', endDate: '', location: '', description: '', poleCarrier: '', entryDeadline: '' })
+  const [editForm, setEditForm] = useState<Omit<Event, 'id'>>({ title: '', date: '', endDate: '', location: '', description: '', poleCarrier: '', entryDeadline: '', targetGrades: [] })
   const [editSaving, setEditSaving] = useState(false)
 
   const prevMonth = () => {
@@ -241,6 +255,7 @@ const removeVideo = (memberId: string, index: number) => {
       endDate: date,
       location: '',
       description: '',
+      targetGrades: [],
     } : null)
     setTabMode(hasPractice ? 'practice' : 'event')
     setSelectedDate(date)
@@ -309,27 +324,6 @@ const removeVideo = (memberId: string, index: number) => {
     setSelectedDate(null)
   }
 
-  const toggleEventMember = async (eventId: string, memberId: string) => {
-    const isCurrentlyAttending = (eventAttendance[eventId] ?? []).includes(memberId)
-    setEventAttendance(prev => {
-      const current = prev[eventId] ?? []
-      const next = current.includes(memberId)
-        ? current.filter(id => id !== memberId)
-        : [...current, memberId]
-      return { ...prev, [eventId]: next }
-    })
-    await fetch('/api/event-attendance', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventId, memberId }),
-    })
-    // チェックON（追加）のときポール登録を促す
-    if (!isCurrentlyAttending) {
-      const event = events.find(e => e.id === eventId)
-      if (event) setPolePrompt({ event })
-    }
-  }
-
   // ポール選択時の自動参加登録用（追加のみ、削除しない）
   const addEventMember = async (eventId: string, memberId: string) => {
     const isAlreadyAttending = (eventAttendance[eventId] ?? []).includes(memberId)
@@ -366,7 +360,7 @@ const removeVideo = (memberId: string, index: number) => {
 
   const openEditDialog = (event: Event) => {
     setEditDialog(event)
-    setEditForm({ title: event.title, date: event.date, endDate: event.endDate, location: event.location, description: event.description, poleCarrier: event.poleCarrier ?? '', entryDeadline: event.entryDeadline ?? '' })
+    setEditForm({ title: event.title, date: event.date, endDate: event.endDate, location: event.location, description: event.description, poleCarrier: event.poleCarrier ?? '', entryDeadline: event.entryDeadline ?? '', targetGrades: event.targetGrades ?? [] })
   }
 
   const saveEditEvent = async () => {
@@ -407,6 +401,23 @@ const removeVideo = (memberId: string, index: number) => {
     }
   }
 
+  const toggleAbsence = async (eventId: string, memberId: string) => {
+    setEventAbsences(prev => {
+      const current = (prev ?? {})[eventId] ?? []
+      return {
+        ...prev,
+        [eventId]: current.includes(memberId)
+          ? current.filter(id => id !== memberId)
+          : [...current, memberId],
+      }
+    })
+    await fetch('/api/event-absences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, memberId }),
+    })
+  }
+
   const deleteEvent = async (eventId: string) => {
     setEvents(prev => prev.filter(e => e.id !== eventId))
     await fetch('/api/events', {
@@ -423,6 +434,7 @@ const removeVideo = (memberId: string, index: number) => {
       endDate: selectedDate ?? '',
       location: '',
       description: '',
+      targetGrades: [],
     })
   }
 
@@ -646,7 +658,6 @@ const removeVideo = (memberId: string, index: number) => {
               <div className="space-y-4">
                 {/* 既存イベント一覧 */}
                 {selectedEvents.map(event => {
-                  const attendingIds = eventAttendance[event.id] ?? []
                   return (
                     <div key={event.id} className="space-y-2">
                       <div className="rounded-xl border border-orange-200 bg-orange-50/50 px-4 py-3 space-y-1">
@@ -716,35 +727,6 @@ const removeVideo = (memberId: string, index: number) => {
                         )}
                       </div>
 
-                      {members.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-xs text-muted-foreground px-1">参加登録</p>
-                          {members.map(member => {
-                            const attending = attendingIds.includes(member.id)
-                            return (
-                              <button
-                                key={member.id}
-                                onClick={() => toggleEventMember(event.id, member.id)}
-                                className={cn(
-                                  'flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl border transition-colors',
-                                  attending ? 'border-orange-300 bg-orange-50' : 'bg-card'
-                                )}
-                              >
-                                <div className={cn(
-                                  'w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
-                                  attending ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
-                                )}>
-                                  {attending && <Check className="h-3.5 w-3.5 text-white" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <span className="font-medium text-sm">{member.name}</span>
-                                  <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
-                                </div>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )}
                     </div>
                   )
                 })}
@@ -772,6 +754,33 @@ const removeVideo = (memberId: string, index: number) => {
                         placeholder="例：春季地区大会"
                         autoFocus
                       />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">参加対象 <span className="text-destructive">*</span></Label>
+                      <div className="flex flex-wrap gap-2">
+                        {GRADE_CATEGORIES.map(cat => {
+                          const selected = addForm.targetGrades.includes(cat)
+                          return (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => setAddForm(f => f ? {
+                                ...f,
+                                targetGrades: selected
+                                  ? f.targetGrades.filter(g => g !== cat)
+                                  : [...f.targetGrades, cat]
+                              } : f)}
+                              className={cn(
+                                'flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors',
+                                selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-input'
+                              )}
+                            >
+                              {selected && <Check className="h-3 w-3" />}
+                              {cat}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
@@ -836,7 +845,7 @@ const removeVideo = (memberId: string, index: number) => {
                       <Button
                         className="flex-1"
                         onClick={saveEvent}
-                        disabled={addSaving || !addForm.title}
+                        disabled={addSaving || !addForm.title || addForm.targetGrades.length === 0}
                       >
                         {addSaving ? '追加中...' : '追加する'}
                       </Button>
@@ -909,10 +918,11 @@ const removeVideo = (memberId: string, index: number) => {
   }
 
   if (isEventDay) {
-    const attendingIds = eventAttendance[e.id] ?? []
+    const targetMembers = filterMembersByTargetGrades(members, e.targetGrades)
+      .filter(m => !(eventAbsences?.[e.id] ?? []).includes(m.id))
     const inputs: Record<string, { m: string; cm: string }> = {}
-    attendingIds.forEach(mid => {
-      inputs[mid] = parseRecord(eventRecords[e.id]?.[mid] ?? '')
+    targetMembers.forEach(m => {
+      inputs[m.id] = parseRecord(eventRecords[e.id]?.[m.id] ?? '')
     })
     setRecordInputs(inputs)
     setRecordDialog(e)
@@ -999,16 +1009,16 @@ const removeVideo = (memberId: string, index: number) => {
           </DialogHeader>
           <div className="overflow-y-auto flex-1 px-4 py-3 space-y-3">
             {recordDialog && (() => {
-              const attendingIds = eventAttendance[recordDialog.id] ?? []
-              const attendingMembers = members.filter(m => attendingIds.includes(m.id))
-              if (attendingMembers.length === 0) {
+              const targetMembers = filterMembersByTargetGrades(members, recordDialog.targetGrades)
+                .filter(m => !(eventAbsences?.[recordDialog.id] ?? []).includes(m.id))
+              if (targetMembers.length === 0) {
                 return (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    参加登録されているメンバーがいません
+                    対象メンバーがいません
                   </p>
                 )
               }
-              return attendingMembers.map(member => {
+              return targetMembers.map(member => {
                 const inputs = recordInputs[member.id] ?? { m: '', cm: '' }
                 const commitRecord = (m: string, cm: string) => {
                   updateRecord(recordDialog.id, member.id, formatRecord(m, cm))
@@ -1083,38 +1093,6 @@ const removeVideo = (memberId: string, index: number) => {
         </DialogContent>
       </Dialog>
 
-      {/* ポール登録誘導確認ダイアログ */}
-      <Dialog open={polePrompt !== null} onOpenChange={open => !open && setPolePrompt(null)}>
-        <DialogContent className="p-6 gap-0">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-base">ポールを登録しますか？</DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {polePrompt?.event.title} の使用ポールを続けて登録できます
-            </p>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Button
-              className="w-full"
-              onClick={() => {
-                const event = polePrompt!.event
-                setPolePrompt(null)
-                setSelectedDate(null)
-                setExpandedMemberId(null)
-                setPoleDialog({ event })
-              }}
-            >
-              登録する
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setPolePrompt(null)}
-            >
-              しない
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* 大会編集ダイアログ */}
       <Dialog open={editDialog !== null} onOpenChange={open => !open && setEditDialog(null)}>
@@ -1167,6 +1145,33 @@ const removeVideo = (memberId: string, index: number) => {
                 onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">参加対象 <span className="text-destructive">*</span></Label>
+              <div className="flex flex-wrap gap-2">
+                {GRADE_CATEGORIES.map(cat => {
+                  const selected = (editForm.targetGrades ?? []).includes(cat)
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setEditForm(f => ({
+                        ...f,
+                        targetGrades: selected
+                          ? (f.targetGrades ?? []).filter(g => g !== cat)
+                          : [...(f.targetGrades ?? []), cat]
+                      }))}
+                      className={cn(
+                        'flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors',
+                        selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-input'
+                      )}
+                    >
+                      {selected && <Check className="h-3 w-3" />}
+                      {cat}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </div>
           <div className="px-4 pb-4 pt-3 border-t shrink-0 flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => setEditDialog(null)}>
@@ -1175,7 +1180,7 @@ const removeVideo = (memberId: string, index: number) => {
             <Button
               className="flex-1"
               onClick={saveEditEvent}
-              disabled={editSaving || !editForm.title || !editForm.date}
+              disabled={editSaving || !editForm.title || !editForm.date || (editForm.targetGrades ?? []).length === 0}
             >
               {editSaving ? '保存中...' : '保存する'}
             </Button>
@@ -1248,17 +1253,17 @@ const removeVideo = (memberId: string, index: number) => {
               /* ── クラブ生軸ビュー ── */
               (() => {
                 const eventId = poleDialog?.event.id ?? ''
-                const attendingIds = eventAttendance[eventId] ?? []
-                const attendingMembers = members.filter(m => attendingIds.includes(m.id))
-                if (attendingMembers.length === 0) return (
-                  <p className="text-sm text-muted-foreground text-center py-4">参加登録されているメンバーがいません</p>
+                const targetMembers = filterMembersByTargetGrades(members, poleDialog?.event.targetGrades)
+                if (targetMembers.length === 0) return (
+                  <p className="text-sm text-muted-foreground text-center py-4">対象メンバーがいません</p>
                 )
                 return (
                   <>
-                    {attendingMembers.map(member => {
+                    {targetMembers.map(member => {
                       const assignedIds = eventPoles[eventId]?.[member.id] ?? []
                       const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
                       const isExpanded = expandedMemberId === member.id
+                      const isAbsent = (eventAbsences?.[eventId] ?? []).includes(member.id)
                       return (
                         <div key={member.id} className="rounded-xl border overflow-hidden">
                           <button
@@ -1270,7 +1275,9 @@ const removeVideo = (memberId: string, index: number) => {
                               <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
                             </div>
                             <div className="flex items-center gap-1 flex-wrap justify-end max-w-[55%]">
-                              {assignedPoles.length === 0 ? (
+                              {isAbsent ? (
+                                <Badge variant="secondary" className="text-xs">不参加</Badge>
+                              ) : assignedPoles.length === 0 ? (
                                 <span className="text-xs text-muted-foreground">未選択</span>
                               ) : (
                                 assignedPoles.map(p => (
@@ -1282,7 +1289,27 @@ const removeVideo = (memberId: string, index: number) => {
                           {isExpanded && (
                             <div className="border-t px-3 py-3 space-y-1.5 bg-muted/20">
                               <p className="text-xs text-muted-foreground mb-2">使用するポールをタップして選択（複数可）</p>
-                              {poles.map(pole => {
+                              {/* 不参加チェック */}
+                              <button
+                                onClick={() => {
+                                  toggleAbsence(eventId, member.id)
+                                  if (!isAbsent) setExpandedMemberId(null)
+                                }}
+                                className={cn(
+                                  'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
+                                  isAbsent ? 'border-gray-400 bg-gray-100' : 'bg-background'
+                                )}
+                              >
+                                <div className={cn(
+                                  'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                                  isAbsent ? 'bg-gray-400 border-gray-400' : 'border-muted-foreground/40'
+                                )}>
+                                  {isAbsent && <Check className="h-3 w-3 text-white" />}
+                                </div>
+                                <span className="text-sm font-medium">不参加</span>
+                              </button>
+                              {/* ポールリスト（不参加時は非表示） */}
+                              {!isAbsent && poles.map(pole => {
                                 const selected = assignedIds.includes(pole.id)
                                 return (
                                   <button
@@ -1308,7 +1335,6 @@ const removeVideo = (memberId: string, index: number) => {
                         </div>
                       )
                     })}
-                    <p className="text-sm text-muted-foreground text-center pt-2 pb-1">自分の名前がない場合はカレンダーから参加登録</p>
                   </>
                 )
               })()
@@ -1318,7 +1344,9 @@ const removeVideo = (memberId: string, index: number) => {
                 <p className="text-sm text-muted-foreground text-center py-4">登録されているポールがありません</p>
               ) : poles.map(pole => {
                 const eventId = poleDialog?.event.id ?? ''
-                const assignedMembers = members.filter(m =>
+                const poleTargetMembers = filterMembersByTargetGrades(members, poleDialog?.event.targetGrades)
+                  .filter(m => !(eventAbsences?.[eventId] ?? []).includes(m.id))
+                const assignedMembers = poleTargetMembers.filter(m =>
                   (eventPoles[eventId]?.[m.id] ?? []).includes(pole.id)
                 )
                 const isExpanded = expandedPoleId === pole.id
@@ -1345,7 +1373,7 @@ const removeVideo = (memberId: string, index: number) => {
                     {isExpanded && (
                       <div className="border-t px-3 py-3 space-y-1.5 bg-muted/20">
                         <p className="text-xs text-muted-foreground mb-2">使用するクラブ生をタップして選択（複数可）</p>
-                        {members.map(member => {
+                        {poleTargetMembers.map(member => {
                           const selected = (eventPoles[eventId]?.[member.id] ?? []).includes(pole.id)
                           return (
                             <button

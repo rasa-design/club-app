@@ -1,6 +1,8 @@
 import { readStorage, writeStorage } from '@/lib/storage'
 import { currentSchoolYear as _currentSchoolYear } from '@/lib/grade'
 
+export type GradeCategory = '小学生' | '中学生' | '高校生' | '一般'
+
 export type Event = {
   id: string
   title: string
@@ -8,8 +10,9 @@ export type Event = {
   endDate: string
   location: string
   description: string
-  poleCarrier?: string   // ポール運搬担当者
-  entryDeadline?: string // 申し込み締め切り日 (YYYY-MM-DD)
+  poleCarrier?: string     // ポール運搬担当者
+  entryDeadline?: string   // 申し込み締め切り日 (YYYY-MM-DD)
+  targetGrades?: GradeCategory[] // 参加対象カテゴリ（未設定=全員対象）
 }
 
 export type Member = {
@@ -107,6 +110,17 @@ export async function saveInsurancePayments(data: InsurancePayments): Promise<vo
 
 // 大会参加: { [eventId]: memberId[] }
 export type EventAttendance = Record<string, string[]>
+
+// 大会不参加: { [eventId]: memberId[] }
+export type EventAbsences = Record<string, string[]>
+
+export async function getEventAbsences(): Promise<EventAbsences> {
+  return readStorage<EventAbsences>('event-absences', {})
+}
+
+export async function saveEventAbsences(data: EventAbsences): Promise<void> {
+  return writeStorage('event-absences', data)
+}
 
 export async function getEventAttendance(): Promise<EventAttendance> {
   return readStorage<EventAttendance>('event-attendance', {})
