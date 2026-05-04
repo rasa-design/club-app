@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil, Video, WandSparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil, WandSparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
@@ -126,8 +126,10 @@ export default function UnifiedCalendar({
   const [expandedPoleId, setExpandedPoleId] = useState<string | null>(null)
   const [eventRecords, setEventRecords] = useState<EventRecords>(initialEventRecords)
   const [recordDialog, setRecordDialog] = useState<Event | null>(null)
-  // 記録入力の一時state: { [memberId]: { m: string; cm: string } }
-  const [recordInputs, setRecordInputs] = useState<Record<string, { m: string; cm: string }>>({})
+  // 記録入力の一時state: { [memberId]: { m, cm, status? } }
+  const [recordInputs, setRecordInputs] = useState<Record<string, { m: string; cm: string; status?: 'NM' | 'DNS' }>>({})
+  // 記録ダイアログで展開中のメンバーID
+  const [expandedRecordMemberId, setExpandedRecordMemberId] = useState<string | null>(null)
 
       // ▼▼▼ 追加：state ▼▼▼
 const [videoDialog, setVideoDialog] = useState<Member | null>(null)
@@ -920,11 +922,17 @@ const removeVideo = (memberId: string, index: number) => {
   if (isEventDay) {
     const targetMembers = filterMembersByTargetGrades(members, e.targetGrades)
       .filter(m => !(eventAbsences?.[e.id] ?? []).includes(m.id))
-    const inputs: Record<string, { m: string; cm: string }> = {}
+    const inputs: Record<string, { m: string; cm: string; status?: 'NM' | 'DNS' }> = {}
     targetMembers.forEach(m => {
-      inputs[m.id] = parseRecord(eventRecords[e.id]?.[m.id] ?? '')
+      const rec = eventRecords[e.id]?.[m.id] ?? ''
+      if (rec === 'NM' || rec === 'DNS') {
+        inputs[m.id] = { m: '', cm: '', status: rec }
+      } else {
+        inputs[m.id] = parseRecord(rec)
+      }
     })
     setRecordInputs(inputs)
+    setExpandedRecordMemberId(null)
     setRecordDialog(e)
   } else {
     setPoleDialog({ event: e })
@@ -1005,9 +1013,9 @@ const removeVideo = (memberId: string, index: number) => {
         <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">{recordDialog?.title}</DialogTitle>
-            <p className="text-xs text-muted-foreground mt-1">本大会の最高跳躍記録を入力してください</p>
+            <p className="text-xs text-muted-foreground mt-1">クラブ生をタップし大会記録や使用したポールを確認</p>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1 px-4 py-3 space-y-3">
+          <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
             {recordDialog && (() => {
               const targetMembers = filterMembersByTargetGrades(members, recordDialog.targetGrades)
                 .filter(m => !(eventAbsences?.[recordDialog.id] ?? []).includes(m.id))
@@ -1020,66 +1028,148 @@ const removeVideo = (memberId: string, index: number) => {
               }
               return targetMembers.map(member => {
                 const inputs = recordInputs[member.id] ?? { m: '', cm: '' }
+                const hasStatus = inputs.status === 'NM' || inputs.status === 'DNS'
+                const isExpanded = expandedRecordMemberId === member.id
+                const currentRecord = eventRecords[recordDialog.id]?.[member.id] ?? ''
+                const assignedIds = eventPoles[recordDialog.id]?.[member.id] ?? []
+                const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
                 const commitRecord = (m: string, cm: string) => {
                   updateRecord(recordDialog.id, member.id, formatRecord(m, cm))
                 }
+                const setStatus = (status: 'NM' | 'DNS') => {
+                  if (inputs.status === status) {
+                    setRecordInputs(prev => ({ ...prev, [member.id]: { m: '', cm: '' } }))
+                    updateRecord(recordDialog.id, member.id, '')
+                  } else {
+                    setRecordInputs(prev => ({ ...prev, [member.id]: { m: '', cm: '', status } }))
+                    updateRecord(recordDialog.id, member.id, status)
+                  }
+                }
                 return (
-                  <div key={member.id} className="space-y-1">
-                    <Label className="text-sm font-medium">
-                      {member.name}
-                      <span className="text-xs text-muted-foreground font-normal ml-2">{gradeLabel(member.grade)}</span>
-                    </Label>
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-1">
-                      <Input
-                        inputMode="numeric"
-                        value={inputs.m}
-                        onChange={e => setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, m: e.target.value } }))}
-                        onBlur={e => {
-                          const mH = toHalfWidth(e.target.value).replace(/\D/g, '')
-                          setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, m: mH } }))
-                          commitRecord(mH, inputs.cm)
-                        }}
-                        placeholder=""
-                        className="font-mono text-right"
-                      />
-                      <span className="shrink-0 text-sm">m</span>
-                      <Input
-                        inputMode="numeric"
-                        value={inputs.cm}
-                        onChange={e => setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, cm: e.target.value } }))}
-                        onBlur={e => {
-                          const cmH = toHalfWidth(e.target.value).replace(/\D/g, '')
-                          setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, cm: cmH } }))
-                          commitRecord(inputs.m, cmH)
-                        }}
-                        placeholder=""
-                        className="font-mono text-right"
-                      />
-                      <span className="shrink-0 text-sm">cm</span>
+                  <div key={member.id} className="rounded-xl border overflow-hidden">
+                    {/* カードヘッダー（タップで展開） */}
+                    <button
+                      className="flex items-center gap-3 w-full text-left px-3 py-3"
+                      onClick={() => setExpandedRecordMemberId(isExpanded ? null : member.id)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-sm">{member.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
                       </div>
-                      {/* ▼▼▼ 追加 ▼▼▼ */}
-                      <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="default"
-                        onClick={() => setPoleListDialog({ member, eventId: recordDialog.id })}
-                      >
-                        <WandSparkles className="h-4 w-4"/>
-                      </Button>
-                      {/* 動画機能は一旦延期。実装再開時はdisabledとコメントを外す */}
-                      <Button
-                        variant="outline"
-                        size="default"
-                        disabled
-                        // onClick={() => setVideoDialog(member)}
-                      >
-                        <Video className="h-4 w-4" />
-                      </Button>
+                      {currentRecord ? (
+                        <span className="font-mono text-sm shrink-0">{currentRecord}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground shrink-0">タップして結果登録</span>
+                      )}
+                    </button>
+
+                    {/* 展開コンテンツ */}
+                    {isExpanded && (
+                      <div className="border-t px-4 py-4 space-y-4 bg-muted/20">
+
+                        {/* ── 記録セクション ── */}
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground">この大会の最高記録</p>
+                          {!hasStatus && (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                inputMode="numeric"
+                                value={inputs.m}
+                                onChange={e => setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, m: e.target.value } }))}
+                                onBlur={e => {
+                                  const mH = toHalfWidth(e.target.value).replace(/\D/g, '')
+                                  setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, m: mH } }))
+                                  commitRecord(mH, inputs.cm)
+                                }}
+                                placeholder=""
+                                className="w-20 font-mono text-right h-10"
+                              />
+                              <span className="text-sm shrink-0">m</span>
+                              <Input
+                                inputMode="numeric"
+                                value={inputs.cm}
+                                onChange={e => setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, cm: e.target.value } }))}
+                                onBlur={e => {
+                                  const cmH = toHalfWidth(e.target.value).replace(/\D/g, '')
+                                  setRecordInputs(prev => ({ ...prev, [member.id]: { ...inputs, cm: cmH } }))
+                                  commitRecord(inputs.m, cmH)
+                                }}
+                                placeholder=""
+                                className="w-20 font-mono text-right h-10"
+                              />
+                              <span className="text-sm shrink-0">cm</span>
+                            </div>
+                          )}
+                          {/* NM トグル */}
+                          <button
+                            onClick={() => setStatus('NM')}
+                            className={cn(
+                              'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
+                              inputs.status === 'NM' ? 'border-orange-300 bg-orange-50' : 'bg-background'
+                            )}
+                          >
+                            <div className={cn(
+                              'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                              inputs.status === 'NM' ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
+                            )}>
+                              {inputs.status === 'NM' && <Check className="h-3 w-3 text-white" />}
+                            </div>
+                            <span className="text-sm font-medium">NM</span>
+                            <span className="text-xs text-muted-foreground">※No Mark（有効記録なし）</span>
+                          </button>
+                          {/* DNS トグル */}
+                          <button
+                            onClick={() => setStatus('DNS')}
+                            className={cn(
+                              'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
+                              inputs.status === 'DNS' ? 'border-orange-300 bg-orange-50' : 'bg-background'
+                            )}
+                          >
+                            <div className={cn(
+                              'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                              inputs.status === 'DNS' ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
+                            )}>
+                              {inputs.status === 'DNS' && <Check className="h-3 w-3 text-white" />}
+                            </div>
+                            <span className="text-sm font-medium">DNS</span>
+                            <span className="text-xs text-muted-foreground">※Did Not Start（棄権/出場なし）</span>
+                          </button>
+                        </div>
+
+                        {/* ── ポールセクション ── */}
+                        <div className="border-t pt-4 space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground">この大会の使用ポール</p>
+                          {assignedPoles.length === 0 ? (
+                            <p className="text-xs text-muted-foreground px-1">未登録</p>
+                          ) : (
+                            assignedPoles.map(pole => (
+                              <div key={pole.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg border bg-background">
+                                <span className="font-mono text-sm">{pole.size}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive"
+                                  onClick={() => togglePole(recordDialog.id, member.id, pole.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                          {/* 動画機能は一旦延期。実装再開時は Video ボタンを追加する */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-1.5 text-xs"
+                            onClick={() => setPoleListDialog({ member, eventId: recordDialog.id })}
+                          >
+                            <WandSparkles className="h-3.5 w-3.5" />
+                            ポールを追加
+                          </Button>
+                        </div>
+
                       </div>
-                      {/* ▲▲▲ 追加 ▲▲▲ */}
-                    </div>
- 
+                    )}
                   </div>
                 )
               })

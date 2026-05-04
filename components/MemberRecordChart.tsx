@@ -40,6 +40,9 @@ function formatCm(cm: number): string {
 }
 
 type ChartPoint = { label: string; value: number; eventTitle: string }
+type ListItem   =
+  | { kind: 'record'; label: string; eventTitle: string; value: number }
+  | { kind: 'NM' | 'DNS'; label: string; eventTitle: string }
 type TickPx     = { value: number; px: number }
 type XTickPx    = { label: string;  px: number }
 
@@ -83,8 +86,9 @@ const manualGridPlugin: Plugin<'line'> = {
 // ── コンポーネント ──────────────────────────────────────────────────────
 
 export default function MemberRecordChart({ memberId, goalCm }: Props) {
-  const [points,  setPoints]  = useState<ChartPoint[]>([])
-  const [loading, setLoading] = useState(true)
+  const [points,    setPoints]    = useState<ChartPoint[]>([])
+  const [listItems, setListItems] = useState<ListItem[]>([])
+  const [loading,   setLoading]   = useState(true)
 
   // チャートの Y/X scale からピクセル座標を取得して HTML ラベルに使う
   const [yTicks, setYTicks] = useState<TickPx[]>([])
@@ -150,23 +154,30 @@ export default function MemberRecordChart({ memberId, goalCm }: Props) {
       fetch('/api/event-records').then(r => r.json()) as Promise<EventRecords>,
     ]).then(([events, records]) => {
       const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date))
-      const pts: ChartPoint[] = []
+      const pts:   ChartPoint[] = []
+      const items: ListItem[]   = []
       for (const event of sorted) {
         const record = records[event.id]?.[memberId]
         if (!record) continue
-        const cm = parseHeightToCm(record)
-        if (cm === null) continue
         const d     = new Date(event.date)
         const label = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}`
-        pts.push({ label, value: cm, eventTitle: event.title })
+        if (record === 'NM' || record === 'DNS') {
+          items.push({ kind: record, label, eventTitle: event.title })
+        } else {
+          const cm = parseHeightToCm(record)
+          if (cm === null) continue
+          pts.push({ label, value: cm, eventTitle: event.title })
+          items.push({ kind: 'record', label, eventTitle: event.title, value: cm })
+        }
       }
       setPoints(pts)
+      setListItems(items)
       setLoading(false)
     })
   }, [memberId])
 
-  if (loading)          return <p className="text-sm text-muted-foreground text-center py-6">読み込み中…</p>
-  if (!points.length)   return <p className="text-sm text-muted-foreground text-center py-6">記録がまだありません</p>
+  if (loading)            return <p className="text-sm text-muted-foreground text-center py-6">読み込み中…</p>
+  if (!listItems.length)  return <p className="text-sm text-muted-foreground text-center py-6">記録がまだありません</p>
 
   const minColWidth = 72
   const chartWidth  = Math.max(320, points.length * minColWidth)
@@ -206,6 +217,7 @@ export default function MemberRecordChart({ memberId, goalCm }: Props) {
 
   return (
     <div>
+      {points.length > 0 && <>
       <p className="text-xs text-muted-foreground mb-1">横にスクロールできます</p>
 
       {/* 単一の横スクロールコンテナ */}
@@ -285,13 +297,18 @@ export default function MemberRecordChart({ memberId, goalCm }: Props) {
 
         </div>
       </div>
+      </>}
 
       {/* 記録一覧（グラフとは独立して縦スクロール） */}
       <div className="mt-4 space-y-1 max-h-48 overflow-y-auto">
-        {points.map((p, i) => (
+        {listItems.map((item, i) => (
           <div key={i} className="flex justify-between gap-4 text-sm">
-            <span className="text-muted-foreground truncate">{p.label}　{p.eventTitle}</span>
-            <span className="font-medium tabular-nums shrink-0">{formatCm(p.value)}</span>
+            <span className="text-muted-foreground truncate">{item.label}　{item.eventTitle}</span>
+            {item.kind === 'record' ? (
+              <span className="font-medium tabular-nums shrink-0">{formatCm(item.value)}</span>
+            ) : (
+              <span className="text-muted-foreground font-mono shrink-0">{item.kind}</span>
+            )}
           </div>
         ))}
       </div>
