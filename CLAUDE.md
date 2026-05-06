@@ -15,3 +15,4 @@
 - コンポーネントの追加は `npx shadcn@latest add <component>` で行う
 - デザイントークン（色・スペーシング・角丸）は Tailwind の標準スケールを使う
 - スマートフォン優先（mobile-first）。`sm:` `md:` でPC向けを拡張する
+- **input のフォントサイズは必ず `text-base`（16px）以上**にする。16px未満だとiOSが自動ズームするため
