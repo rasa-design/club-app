@@ -1,13 +1,13 @@
 export const dynamic = 'force-dynamic'
 
-import { getMembers, getAttendance, getPractices, getLatestMembersYear, getEvents, getEventAttendance, getPoles, getEventPoles, getEventRecords, getEventAbsences } from '@/lib/data'
+import { getMembers, getAttendance, getPractices, getLatestMembersYear, getEvents, getEventAttendance, getPoles, getEventPoles, getEventRecords, getEventAbsences, getEventTrialRecords } from '@/lib/data'
 import { getSession } from '@/lib/session'
 import UnifiedCalendar from '@/components/UnifiedCalendar'
 import { CalendarCheck2 } from 'lucide-react'
 
 export default async function CalendarPage() {
   const [year, session] = await Promise.all([getLatestMembersYear(), getSession()])
-  const [members, practices, attendance, events, eventAttendance, poles, eventPoles, eventRecords, eventAbsences] = await Promise.all([
+  const [members, practices, attendance, events, eventAttendance, poles, eventPoles, eventRecords, eventAbsences, eventTrialRecords] = await Promise.all([
     getMembers(year),
     getPractices(),
     getAttendance(),
@@ -17,6 +17,7 @@ export default async function CalendarPage() {
     getEventPoles(),
     getEventRecords(),
     getEventAbsences(),
+    getEventTrialRecords(),
   ])
 
   return (
@@ -35,6 +36,7 @@ export default async function CalendarPage() {
         poles={poles}
         initialEventPoles={eventPoles}
         initialEventRecords={eventRecords}
+        initialEventTrialRecords={eventTrialRecords}
         members={members}
         isAdmin={!!session.isAdmin}
       />

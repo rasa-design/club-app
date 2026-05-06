@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, EventAbsences, Pole, EventPoles, EventRecords, GradeCategory } from '@/lib/data'
+import { Practices, Attendance, Member, AttendanceRecord, Event, EventAttendance, EventAbsences, Pole, EventPoles, EventRecords, EventTrialRecords, MemberTrialData, GradeCategory } from '@/lib/data'
 import { gradeLabel } from '@/lib/grade'
 import { toHalfWidth, parseRecord, formatRecord } from '@/lib/record'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,12 @@ import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, Ca
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
+
+function formatHeight(cm: number): string {
+  const m = Math.floor(cm / 100)
+  const remainder = cm % 100
+  return remainder === 0 ? `${m}m` : `${m}m${remainder}`
+}
 
 const GRADE_CATEGORIES: GradeCategory[] = ['小学生', '中学生', '高校生', '一般']
 
@@ -90,6 +96,7 @@ export default function UnifiedCalendar({
   poles,
   initialEventPoles,
   initialEventRecords,
+  initialEventTrialRecords,
   members,
   isAdmin,
 }: {
@@ -101,6 +108,7 @@ export default function UnifiedCalendar({
   poles: Pole[]
   initialEventPoles: EventPoles
   initialEventRecords: EventRecords
+  initialEventTrialRecords: EventTrialRecords
   members: Member[]
   isAdmin: boolean
 }) {
@@ -125,6 +133,10 @@ export default function UnifiedCalendar({
   const [poleViewMode, setPoleViewMode] = useState<'member' | 'pole'>('member')
   const [expandedPoleId, setExpandedPoleId] = useState<string | null>(null)
   const [eventRecords, setEventRecords] = useState<EventRecords>(initialEventRecords)
+  const [eventTrialRecords, setEventTrialRecords] = useState<EventTrialRecords>(initialEventTrialRecords)
+  const [trialAddingHeight, setTrialAddingHeight] = useState(false)
+  const [trialHeightInput, setTrialHeightInput] = useState('')
+  const [trialEditMode, setTrialEditMode] = useState(false)
   const [recordDialog, setRecordDialog] = useState<Event | null>(null)
   // 記録入力の一時state: { [memberId]: { m, cm, status? } }
   const [recordInputs, setRecordInputs] = useState<Record<string, { m: string; cm: string; status?: 'NM' | 'DNS' }>>({})
@@ -357,6 +369,18 @@ const removeVideo = (memberId: string, index: number) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, memberId, record }),
+    })
+  }
+
+  const updateTrialRecord = async (eventId: string, memberId: string, data: MemberTrialData) => {
+    setEventTrialRecords(prev => ({
+      ...prev,
+      [eventId]: { ...(prev[eventId] ?? {}), [memberId]: data },
+    }))
+    await fetch('/api/event-trial-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, memberId, data }),
     })
   }
 
@@ -1050,7 +1074,12 @@ const removeVideo = (memberId: string, index: number) => {
                     {/* カードヘッダー（タップで展開） */}
                     <button
                       className="flex items-center gap-3 w-full text-left px-3 py-3"
-                      onClick={() => setExpandedRecordMemberId(isExpanded ? null : member.id)}
+                      onClick={() => {
+                        setExpandedRecordMemberId(isExpanded ? null : member.id)
+                        setTrialAddingHeight(false)
+                        setTrialHeightInput('')
+                        setTrialEditMode(false)
+                      }}
                     >
                       <div className="flex-1 min-w-0">
                         <span className="font-medium text-sm">{member.name}</span>
@@ -1136,6 +1165,147 @@ const removeVideo = (memberId: string, index: number) => {
                           </button>
                         </div>
 
+                        {/* ── 試技記録セクション ── */}
+                        {(() => {
+                          const trialData = eventTrialRecords[recordDialog.id]?.[member.id] ?? { heights: [], trials: {} }
+                          const { heights, trials } = trialData
+
+                          const cycleMark = (heightCm: number, attemptIdx: number) => {
+                            const marks = [...(trials[String(heightCm)] ?? [])]
+                            while (marks.length <= attemptIdx) marks.push('')
+                            const cur = marks[attemptIdx]
+                            marks[attemptIdx] = cur === '' ? '○' : cur === '○' ? '✕' : cur === '✕' ? '-' : ''
+                            updateTrialRecord(recordDialog.id, member.id, {
+                              heights,
+                              trials: { ...trials, [String(heightCm)]: marks },
+                            })
+                          }
+
+                          const addHeight = () => {
+                            const cm = parseInt(trialHeightInput, 10)
+                            if (!cm || cm < 50 || cm > 700 || heights.includes(cm)) return
+                            const newHeights = [...heights, cm].sort((a, b) => a - b)
+                            updateTrialRecord(recordDialog.id, member.id, { heights: newHeights, trials })
+                            setTrialHeightInput('')
+                            setTrialAddingHeight(false)
+                          }
+
+                          const removeHeight = (heightCm: number) => {
+                            const newHeights = heights.filter(h => h !== heightCm)
+                            const newTrials = { ...trials }
+                            delete newTrials[String(heightCm)]
+                            updateTrialRecord(recordDialog.id, member.id, { heights: newHeights, trials: newTrials })
+                          }
+
+                          return (
+                            <div className="border-t pt-4 space-y-2">
+                              <p className="text-xs font-medium text-muted-foreground">試技記録表</p>
+
+                              {heights.length > 0 && (
+                                <>
+                                  <div className="overflow-x-auto">
+                                    <div className="inline-block">
+                                      {/* ヘッダー行 */}
+                                      <div className="flex items-end gap-1 mb-1">
+                                        <div className="w-10 shrink-0" />
+                                        {heights.map(h => (
+                                          <div key={h} className="w-11 flex flex-col items-center gap-0.5 shrink-0">
+                                            <span className="text-xs text-foreground whitespace-nowrap">{formatHeight(h)}</span>
+                                            {trialEditMode && (
+                                              <button
+                                                onClick={() => removeHeight(h)}
+                                                className="w-11 h-11 text-destructive flex items-center justify-center"
+                                              >
+                                                <Trash2 className="h-4 w-4" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {/* 試技行 */}
+                                      {[0, 1, 2].map(i => (
+                                        <div key={i} className="flex items-center gap-1 mb-1">
+                                          <div className="w-10 shrink-0 text-xs text-muted-foreground whitespace-nowrap pr-1">
+                                            {i + 1}回目
+                                          </div>
+                                          {heights.map(h => {
+                                            const mark = (trials[String(h)] ?? [])[i] ?? ''
+                                            return (
+                                              <button
+                                                key={h}
+                                                onClick={() => cycleMark(h, i)}
+                                                className={cn(
+                                                  'w-11 h-11 rounded border text-base shrink-0 transition-colors',
+                                                  mark === '○' ? 'border-green-400 bg-green-50 text-green-600' :
+                                                  mark === '✕' ? 'border-red-400 bg-red-50 text-red-600' :
+                                                  mark === '-' ? 'border-muted-foreground/40 bg-muted text-muted-foreground' :
+                                                  'border-input bg-background'
+                                                )}
+                                              >
+                                                {mark}
+                                              </button>
+                                            )
+                                          })}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* 高さ追加UI */}
+                              {trialAddingHeight ? (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    value={trialHeightInput}
+                                    onChange={e => setTrialHeightInput(e.target.value)}
+                                    placeholder="例：155"
+                                    className="w-24 h-9 text-sm font-mono"
+                                    autoFocus
+                                    onKeyDown={e => e.key === 'Enter' && addHeight()}
+                                  />
+                                  <span className="text-sm text-muted-foreground shrink-0">cm</span>
+                                  <Button size="sm" className="h-9 shrink-0" onClick={addHeight} disabled={!trialHeightInput}>
+                                    追加
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-9 shrink-0"
+                                    onClick={() => { setTrialAddingHeight(false); setTrialHeightInput('') }}
+                                  >
+                                    キャンセル
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 gap-1.5 text-xs"
+                                    onClick={() => { setTrialAddingHeight(true); setTrialEditMode(false) }}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    バーの高さを追加
+                                  </Button>
+                                  {heights.length > 0 && (
+                                    <Button
+                                      variant={trialEditMode ? 'default' : 'outline'}
+                                      size="sm"
+                                      className="text-xs"
+                                      onClick={() => setTrialEditMode(m => !m)}
+                                    >
+                                      {trialEditMode ? '完了' : '編集'}
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
+
                         {/* ── ポールセクション ── */}
                         <div className="border-t pt-4 space-y-2">
                           <p className="text-xs font-medium text-muted-foreground">この大会の使用ポール</p>
@@ -1176,8 +1346,8 @@ const removeVideo = (memberId: string, index: number) => {
             })()}
           </div>
           <div className="px-4 pb-4 pt-3 border-t shrink-0">
-            <Button className="w-full" onClick={() => setRecordDialog(null)}>
-              保存する
+            <Button variant="outline" className="w-full" onClick={() => setRecordDialog(null)}>
+              閉じる
             </Button>
           </div>
         </DialogContent>

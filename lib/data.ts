@@ -164,6 +164,22 @@ export async function saveEventRecords(data: EventRecords): Promise<void> {
   return writeStorage('event-records', data)
 }
 
+// 試技記録: { [eventId]: { [memberId]: MemberTrialData } }
+// heights: cm単位の昇順配列  trials: { [cm文字列]: ['○'|'✕'|'', ...] 最大3要素 }
+export type MemberTrialData = {
+  heights: number[]
+  trials: Record<string, string[]>
+}
+export type EventTrialRecords = Record<string, Record<string, MemberTrialData>>
+
+export async function getEventTrialRecords(): Promise<EventTrialRecords> {
+  return readStorage<EventTrialRecords>('event-trial-records', {})
+}
+
+export async function saveEventTrialRecords(data: EventTrialRecords): Promise<void> {
+  return writeStorage('event-trial-records', data)
+}
+
 // 今シーズン目標: { [memberId]: string }  例: "3m10cm"
 export type MemberGoals = Record<string, string>
 

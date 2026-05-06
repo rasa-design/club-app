@@ -8,6 +8,7 @@ type UpdateNotice = {
   active: boolean
   title: string
   body: string
+  image?: string
 }
 
 const STORAGE_KEY = "update-notice-read-id"
@@ -23,7 +24,7 @@ export default function UpdateNoticeDialog() {
     if (fetchInitiated) return
     fetchInitiated = true
 
-    fetch("/update-notice.json")
+    fetch("/update-notice.json", { cache: 'no-cache' })
       .then((res) => res.json())
       .then((data: UpdateNotice) => {
         if (!data.active) return
@@ -59,14 +60,17 @@ export default function UpdateNoticeDialog() {
   if (!open || !notice) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 supports-backdrop-filter:backdrop-blur-xs">
       <div className="bg-popover rounded-xl w-full max-w-sm ring-1 ring-foreground/10 shadow-xl text-sm text-popover-foreground pointer-events-auto">
         <div className="px-4 pt-4 pb-2 font-medium text-base">{notice.title}</div>
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 space-y-3">
           <p className="whitespace-pre-line">{notice.body}</p>
+          {notice.image && (
+            <img src={notice.image} alt="" className="w-full h-auto rounded-lg" />
+          )}
         </div>
         <div className="px-4 py-3 border-t bg-muted/50 rounded-b-xl">
-          <Button onClick={handleClose} className="w-full">閉じる</Button>
+          <Button variant="outline" onClick={handleClose} className="w-full">閉じる</Button>
         </div>
       </div>
     </div>
