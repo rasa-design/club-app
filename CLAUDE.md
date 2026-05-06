@@ -16,3 +16,11 @@
 - デザイントークン（色・スペーシング・角丸）は Tailwind の標準スケールを使う
 - スマートフォン優先（mobile-first）。`sm:` `md:` でPC向けを拡張する
 - **input のフォントサイズは必ず `text-base`（16px）以上**にする。16px未満だとiOSが自動ズームするため
+
+# push前チェックリスト
+
+push する前に必ず以下を確認すること：
+
+1. `public/update-notice.json` — id・title・body・active を今回の変更内容に合わせて更新したか
+2. `public/update-history.json` — 履歴に今回の変更を追記したか
+3. `public/update-notice-img.png` — スクショが必要な変更か確認。前回のスクショが残っている場合は上書きまたは削除するか確認する
