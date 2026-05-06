@@ -1262,7 +1262,7 @@ const removeVideo = (memberId: string, index: number) => {
                                     value={trialHeightInput}
                                     onChange={e => setTrialHeightInput(e.target.value)}
                                     placeholder="例：155"
-                                    className="w-24 h-9 text-sm font-mono"
+                                    className="w-24 h-9 text-base font-mono"
                                     autoFocus
                                     onKeyDown={e => e.key === 'Enter' && addHeight()}
                                   />
