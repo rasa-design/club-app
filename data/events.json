@@ -84,102 +84,135 @@
     "id": "1775274458428"
   },
   {
-    "title": "a",
+    "title": "春季記録会",
     "date": "2026-03-01",
     "endDate": "2026-03-01",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776596952855"
+    "id": "1776596952855",
+    "targetGrades": [
+      "中学生",
+      "高校生"
+    ]
   },
   {
-    "title": "s",
+    "title": "県下特別記録会",
     "date": "2026-02-01",
     "endDate": "2026-02-01",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776596968245"
+    "id": "1776596968245",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
-    "title": "d",
+    "title": "年明け県大会",
     "date": "2026-01-01",
     "endDate": "2026-01-01",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776596986381"
+    "id": "1776596986381",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
-    "title": "f",
+    "title": "東海選抜",
     "date": "2025-12-01",
     "endDate": "2025-12-01",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776597118620"
+    "id": "1776597118620",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
-    "title": "g",
+    "title": "秋季記録会",
     "date": "2025-11-01",
     "endDate": "2025-11-01",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776597144316"
+    "id": "1776597144316",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
-    "title": "h",
+    "title": "学年別登録会",
     "date": "2025-12-08",
     "endDate": "2025-12-08",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776597602105"
+    "id": "1776597602105",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
-    "title": "j",
+    "title": "年内最終選考会",
     "date": "2025-12-25",
     "endDate": "2025-12-25",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776597622207"
+    "id": "1776597622207",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
-    "title": "k",
+    "title": "学年別冬季記録会",
     "date": "2026-01-13",
     "endDate": "",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776597754660"
+    "id": "1776597754660",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
-    "title": "l",
+    "title": "選抜選考会",
     "date": "2026-01-22",
     "endDate": "",
     "location": "",
     "description": "",
     "poleCarrier": "",
     "entryDeadline": "",
-    "id": "1776597768790"
+    "id": "1776597768790",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
-    "title": "あ",
+    "title": "東海選抜記録会",
     "date": "2025-02-05",
     "endDate": "2025-02-05",
     "location": "",
     "description": "",
-    "id": "1777177300115"
+    "id": "1777177300115",
+    "poleCarrier": "",
+    "entryDeadline": "",
+    "targetGrades": [
+      "中学生"
+    ]
   },
   {
     "title": "２",
@@ -198,7 +231,7 @@
     "id": "1777179223206"
   },
   {
-    "title": "あ",
+    "title": "春季記録会",
     "date": "2026-05-06",
     "endDate": "2026-05-06",
     "location": "",
@@ -206,10 +239,12 @@
     "targetGrades": [
       "中学生"
     ],
-    "id": "1777870419594"
+    "id": "1777870419594",
+    "poleCarrier": "",
+    "entryDeadline": ""
   },
   {
-    "title": "c",
+    "title": "県新人戦",
     "date": "2026-05-12",
     "endDate": "2026-05-12",
     "location": "",

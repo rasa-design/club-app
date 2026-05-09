@@ -301,7 +301,7 @@ export default function MemberRecordChart({ memberId, goalCm }: Props) {
 
       {/* 記録一覧（グラフとは独立して縦スクロール） */}
       <div className="mt-4 space-y-1 max-h-48 overflow-y-auto">
-        {listItems.map((item, i) => (
+        {[...listItems].reverse().map((item, i) => (
           <div key={i} className="flex justify-between gap-4 text-sm">
             <span className="text-muted-foreground truncate">{item.label}　{item.eventTitle}</span>
             {item.kind === 'record' ? (

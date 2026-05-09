@@ -38,6 +38,11 @@ export default function UpdateNoticeDialog() {
         }
         setNotice(data)
         setOpen(true)
+        fetch('/api/update-notice-views', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: data.id }),
+        }).catch(() => {})
         // 未読通知があるときホーム画面アイコンにバッジをセット
         if ('setAppBadge' in navigator) {
           navigator.setAppBadge(1).catch(() => {})
