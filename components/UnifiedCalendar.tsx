@@ -664,39 +664,68 @@ const removeVideo = (memberId: string, index: number) => {
 
               {/* 登録済み大会カード */}
               {selectedEvents.map(event => (
-                <div
-                  key={event.id}
-                  className="rounded-xl border border-orange-200 bg-orange-50/50 px-4 py-3 space-y-1 cursor-pointer active:bg-orange-100/70 transition-colors"
-                  onClick={() => {
-                    const isEventDay = event.date <= todayStr
-                    if (isEventDay) {
-                      const targetMembers = filterMembersByTargetGrades(members, event.targetGrades)
-                        .filter(m => !(eventAbsences?.[event.id] ?? []).includes(m.id))
-                      const inputs: Record<string, { m: string; cm: string; status?: 'NM' | 'DNS' }> = {}
-                      targetMembers.forEach(m => {
-                        const rec = eventRecords[event.id]?.[m.id] ?? ''
-                        if (rec === 'NM' || rec === 'DNS') {
-                          inputs[m.id] = { m: '', cm: '', status: rec }
-                        } else {
-                          inputs[m.id] = parseRecord(rec)
-                        }
-                      })
-                      setRecordInputs(inputs)
-                      setExpandedRecordMemberId(null)
-                      setRecordDialog(event)
-                    } else {
-                      setPoleDialog({ event })
-                      setExpandedMemberId(null)
-                    }
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-2">
+                <div key={event.id} className="relative rounded-xl border border-orange-200 bg-orange-50/50">
+                  {/* クリック可能なメインエリア（DropdownMenu を含まない） */}
+                  <div
+                    className="px-4 py-3 pr-10 space-y-1 cursor-pointer active:bg-orange-100/70 transition-colors rounded-[inherit]"
+                    onClick={() => {
+                      const isEventDay = event.date <= todayStr
+                      if (isEventDay) {
+                        const targetMembers = filterMembersByTargetGrades(members, event.targetGrades)
+                          .filter(m => !(eventAbsences?.[event.id] ?? []).includes(m.id))
+                        const inputs: Record<string, { m: string; cm: string; status?: 'NM' | 'DNS' }> = {}
+                        targetMembers.forEach(m => {
+                          const rec = eventRecords[event.id]?.[m.id] ?? ''
+                          if (rec === 'NM' || rec === 'DNS') {
+                            inputs[m.id] = { m: '', cm: '', status: rec }
+                          } else {
+                            inputs[m.id] = parseRecord(rec)
+                          }
+                        })
+                        setRecordInputs(inputs)
+                        setExpandedRecordMemberId(null)
+                        setRecordDialog(event)
+                      } else {
+                        setPoleDialog({ event })
+                        setExpandedMemberId(null)
+                      }
+                    }}
+                  >
                     <p className="font-semibold text-sm">{event.title}</p>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <Badge variant="secondary" className="text-xs font-normal">
+                        {formatDate(event.date)}
+                        {event.endDate && event.endDate !== event.date
+                          ? ` 〜 ${formatDate(event.endDate)}`
+                          : ''}
+                      </Badge>
+                      {event.location && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                          <MapPin className="h-3 w-3" />
+                          {event.location}
+                        </span>
+                      )}
+                      {event.entryDeadline && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                          <CalendarClock className="h-3 w-3" />
+                          締切 {formatDate(event.entryDeadline)}
+                        </span>
+                      )}
+                      {event.poleCarrier && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                          <User className="h-3 w-3" />
+                          運搬 {event.poleCarrier}
+                        </span>
+                      )}
+                    </div>
+                    {event.description && (
+                      <p className="text-xs text-muted-foreground">{event.description}</p>
+                    )}
+                  </div>
+                  {/* DropdownMenu — クリック領域の外に絶対配置 */}
+                  <div className="absolute top-2 right-2">
                     <DropdownMenu>
-                      <DropdownMenuTrigger
-                        className="h-7 w-7 shrink-0 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                        onClick={e => e.stopPropagation()}
-                      >
+                      <DropdownMenuTrigger className="h-7 w-7 shrink-0 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                         <MoreHorizontal className="h-4 w-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -714,35 +743,6 @@ const removeVideo = (memberId: string, index: number) => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <Badge variant="secondary" className="text-xs font-normal">
-                      {formatDate(event.date)}
-                      {event.endDate && event.endDate !== event.date
-                        ? ` 〜 ${formatDate(event.endDate)}`
-                        : ''}
-                    </Badge>
-                    {event.location && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                        <MapPin className="h-3 w-3" />
-                        {event.location}
-                      </span>
-                    )}
-                    {event.entryDeadline && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                        <CalendarClock className="h-3 w-3" />
-                        締切 {formatDate(event.entryDeadline)}
-                      </span>
-                    )}
-                    {event.poleCarrier && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                        <User className="h-3 w-3" />
-                        運搬 {event.poleCarrier}
-                      </span>
-                    )}
-                  </div>
-                  {event.description && (
-                    <p className="text-xs text-muted-foreground">{event.description}</p>
-                  )}
                 </div>
               ))}
 
