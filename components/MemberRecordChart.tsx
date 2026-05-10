@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,7 +19,13 @@ import { cn } from '@/lib/utils'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
 
-type Props = { memberId: string; goalCm?: number | null; onEventClick?: (eventId: string) => void }
+type Props = {
+  memberId: string
+  goalCm?: number | null
+  onEventClick?: (eventId: string) => void
+  events?: Event[]
+  eventRecords?: EventRecords
+}
 
 // ── ヘルパー ─────────────────────────────────────────────────────────────
 
@@ -87,7 +94,8 @@ const manualGridPlugin: Plugin<'line'> = {
 
 // ── コンポーネント ──────────────────────────────────────────────────────
 
-export default function MemberRecordChart({ memberId, goalCm, onEventClick }: Props) {
+export default function MemberRecordChart({ memberId, goalCm, onEventClick, events: eventsProp, eventRecords: eventRecordsProp }: Props) {
+  const router = useRouter()
   const [points,    setPoints]    = useState<ChartPoint[]>([])
   const [listItems, setListItems] = useState<ListItem[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -151,10 +159,7 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick }: Pr
   }).current
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/events').then(r => r.json())        as Promise<Event[]>,
-      fetch('/api/event-records').then(r => r.json()) as Promise<EventRecords>,
-    ]).then(([events, records]) => {
+    function process(events: Event[], records: EventRecords) {
       const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date))
       const pts:   ChartPoint[] = []
       const items: ListItem[]   = []
@@ -175,8 +180,26 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick }: Pr
       setPoints(pts)
       setListItems(items)
       setLoading(false)
+    }
+
+    if (eventsProp && eventRecordsProp) {
+      process(eventsProp, eventRecordsProp)
+      return
+    }
+
+    Promise.all([
+      fetch('/api/events').then(r => r.json())        as Promise<Event[]>,
+      fetch('/api/event-records').then(r => r.json()) as Promise<EventRecords>,
+    ]).then(([events, records]) => process(events, records))
+  }, [memberId, eventsProp, eventRecordsProp])
+
+  // 大会リストが揃ったら /payments ページをプリフェッチ（遷移を高速化）
+  useEffect(() => {
+    if (!onEventClick || listItems.length === 0) return
+    listItems.forEach(item => {
+      router.prefetch(`/payments?event=${item.eventId}&member=${memberId}&from=members`)
     })
-  }, [memberId])
+  }, [listItems, memberId, onEventClick, router])
 
   if (loading)            return <p className="text-sm text-muted-foreground text-center py-6">読み込み中…</p>
   if (!listItems.length)  return <p className="text-sm text-muted-foreground text-center py-6">記録がまだありません</p>

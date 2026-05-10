@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEventRecords, saveEventRecords } from '@/lib/data'
 
 export async function GET() {
-  return NextResponse.json(await getEventRecords())
+  return NextResponse.json(await getEventRecords(), {
+    headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=300' },
+  })
 }
 
 export async function POST(req: NextRequest) {

@@ -53,6 +53,8 @@ export default function MemberList({
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState<{ m: string; cm: string }>({ m: '', cm: '' })
   const [pbCounts, setPbCounts] = useState<Record<string, number | null>>({})
+  const [eventsData, setEventsData] = useState<Event[]>([])
+  const [recordsData, setRecordsData] = useState<EventRecords>({})
   const isFirstRender = useRef(true)
 
   useEffect(() => {
@@ -95,6 +97,9 @@ export default function MemberList({
       fetch('/api/events').then(r => r.json()) as Promise<Event[]>,
       fetch('/api/event-records').then(r => r.json()) as Promise<EventRecords>,
     ]).then(([events, records]) => {
+      setEventsData(events)
+      setRecordsData(records)
+
       const sy = currentSchoolYear()
       const syStart = new Date(`${sy}-04-01`)
       const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date))
@@ -332,6 +337,8 @@ export default function MemberList({
                 onEventClick={eventId => {
                   router.push(`/payments?event=${eventId}&member=${selectedMember.id}&from=members`)
                 }}
+                events={eventsData.length > 0 ? eventsData : undefined}
+                eventRecords={Object.keys(recordsData).length > 0 ? recordsData : undefined}
               />
             )}
           </div>

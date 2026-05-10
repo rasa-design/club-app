@@ -4,7 +4,9 @@ import { getSession } from '@/lib/session'
 
 export async function GET() {
   const events = await getEvents()
-  return NextResponse.json(events)
+  return NextResponse.json(events, {
+    headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=300' },
+  })
 }
 
 export async function POST(req: NextRequest) {
