@@ -26,7 +26,7 @@ export default async function CalendarPage() {
         <CalendarCheck2 className="h-5 w-5 shrink-0" style={{ color: '#3BBFAD' }} />
         <h2 className="text-xl font-bold text-gray-800">練習日/大会カレンダー</h2>
       </div>
-      <p className="text-xs text-gray-500 mb-4">日程の確認と参加登録</p>
+      <p className="text-xs text-gray-500 mb-4">日程の確認と登録</p>
       <UnifiedCalendar
         initialPractices={practices}
         initialAttendance={attendance}
