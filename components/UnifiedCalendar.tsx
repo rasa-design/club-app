@@ -704,15 +704,13 @@ const removeVideo = (memberId: string, index: number) => {
                           <Pencil className="h-4 w-4 mr-2" />
                           編集
                         </DropdownMenuItem>
-                        {isAdmin && (
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteTarget(event)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            削除
-                          </DropdownMenuItem>
-                        )}
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteTarget(event)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          削除
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -995,15 +993,13 @@ const removeVideo = (memberId: string, index: number) => {
                         <Pencil className="h-4 w-4 mr-2" />
                         編集
                       </DropdownMenuItem>
-                      {isAdmin && (
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteTarget(e)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          削除
-                        </DropdownMenuItem>
-                      )}
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setDeleteTarget(e)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        削除
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
