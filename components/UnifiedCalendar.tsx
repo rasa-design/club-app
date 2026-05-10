@@ -170,6 +170,19 @@ const [poleListDialog, setPoleListDialog] = useState<{ member: Member; eventId: 
     if (!eventId) return
     const event = initialEvents.find(e => e.id === eventId)
     if (!event) return
+    // カレンダーから開く場合と同じように recordInputs を初期化
+    const targetMembers = filterMembersByTargetGrades(members, event.targetGrades)
+      .filter(m => !(eventAbsences?.[event.id] ?? []).includes(m.id))
+    const inputs: Record<string, { m: string; cm: string; status?: 'NM' | 'DNS' }> = {}
+    targetMembers.forEach(m => {
+      const rec = eventRecords[event.id]?.[m.id] ?? ''
+      if (rec === 'NM' || rec === 'DNS') {
+        inputs[m.id] = { m: '', cm: '', status: rec }
+      } else {
+        inputs[m.id] = parseRecord(rec)
+      }
+    })
+    setRecordInputs(inputs)
     setRecordDialog(event)
     const memberId = params.get('member')
     if (memberId) setExpandedRecordMemberId(memberId)
