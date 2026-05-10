@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Practices, Attendance, Member, Event, EventAttendance, EventAbsences, Pole, EventPoles, EventRecords, EventTrialRecords, MemberTrialData, GradeCategory } from '@/lib/data'
+import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Practices, Attendance, Member, Event, EventAttendance, EventAbsences, Pole, EventPoles, EventExtraPoles, EventRecords, EventTrialRecords, MemberTrialData, GradeCategory } from '@/lib/data'
 import { gradeLabel } from '@/lib/grade'
 import { toHalfWidth, parseRecord, formatRecord } from '@/lib/record'
 import { Button } from '@/components/ui/button'
@@ -32,7 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil, MoreHorizontal, WandSparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, MapPin, Plus, Trash2, User, CalendarClock, Pencil, MoreHorizontal, WandSparkles, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
@@ -99,6 +100,7 @@ export default function UnifiedCalendar({
   initialEventAbsences = {},
   poles,
   initialEventPoles,
+  initialEventExtraPoles = {},
   initialEventRecords,
   initialEventTrialRecords,
   members,
@@ -111,11 +113,15 @@ export default function UnifiedCalendar({
   initialEventAbsences?: EventAbsences
   poles: Pole[]
   initialEventPoles: EventPoles
+  initialEventExtraPoles?: EventExtraPoles
   initialEventRecords: EventRecords
   initialEventTrialRecords: EventTrialRecords
   members: Member[]
   isAdmin: boolean
+  initialOpenEventId?: string | null
 }) {
+  const router = useRouter()
+  const fromMemberIdRef = useRef<string | null>(null)
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
@@ -138,6 +144,8 @@ export default function UnifiedCalendar({
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null)
   const [poleViewMode, setPoleViewMode] = useState<'member' | 'pole'>('member')
   const [expandedPoleId, setExpandedPoleId] = useState<string | null>(null)
+  const [eventExtraPoles, setEventExtraPoles] = useState<EventExtraPoles>(initialEventExtraPoles)
+  const [extraPoleInput, setExtraPoleInput] = useState('')
   const [eventRecords, setEventRecords] = useState<EventRecords>(initialEventRecords)
   const [eventTrialRecords, setEventTrialRecords] = useState<EventTrialRecords>(initialEventTrialRecords)
   const [trialAddingHeight, setTrialAddingHeight] = useState(false)
@@ -154,6 +162,30 @@ const [videoDialog, setVideoDialog] = useState<Member | null>(null)
 const [videos, setVideos] = useState<Record<string, string[]>>({})
 const [newUrl, setNewUrl] = useState('')
 const [poleListDialog, setPoleListDialog] = useState<{ member: Member; eventId: string } | null>(null)
+
+  // URLパラメータ ?event=&member=&from= で記録ダイアログを開く
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const eventId = params.get('event')
+    if (!eventId) return
+    const event = initialEvents.find(e => e.id === eventId)
+    if (!event) return
+    setRecordDialog(event)
+    const memberId = params.get('member')
+    if (memberId) setExpandedRecordMemberId(memberId)
+    if (params.get('from') === 'members') fromMemberIdRef.current = params.get('member')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleRecordDialogClose = () => {
+    setRecordDialog(null)
+    setExpandedRecordMemberId(null)
+    const memberId = fromMemberIdRef.current
+    if (memberId) {
+      fromMemberIdRef.current = null
+      router.push(`/members?member=${memberId}`)
+    }
+  }
 
 // 動画機能は一旦延期。実装再開時はコメントを外す
 // const toEmbedUrl = (url: string) => {
@@ -434,6 +466,49 @@ const removeVideo = (memberId: string, index: number) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, memberId }),
     })
+  }
+
+  const addExtraPole = async (eventId: string, memberId: string, size: string) => {
+    const trimmed = size.trim()
+    if (!trimmed) return
+    const newPole: Pole = { id: `extra-${Date.now()}`, size: trimmed }
+    const next = [...(eventExtraPoles?.[eventId] ?? []), newPole]
+    setEventExtraPoles(prev => ({ ...prev, [eventId]: next }))
+    setExtraPoleInput('')
+    await fetch('/api/event-extra-poles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, poles: next }),
+    })
+    // 追加したポールをそのメンバーに自動割り当て
+    await togglePole(eventId, memberId, newPole.id)
+  }
+
+  const removeExtraPole = async (eventId: string, poleId: string) => {
+    const next = (eventExtraPoles?.[eventId] ?? []).filter(p => p.id !== poleId)
+    setEventExtraPoles(prev => ({ ...prev, [eventId]: next }))
+    // 割り当てからも削除
+    const currentAssignments = eventPoles[eventId] ?? {}
+    const updatedAssignments = Object.fromEntries(
+      Object.entries(currentAssignments).map(([memberId, poleIds]) => [
+        memberId, poleIds.filter(id => id !== poleId),
+      ])
+    )
+    setEventPoles(prev => ({ ...prev, [eventId]: updatedAssignments }))
+    await Promise.all([
+      fetch('/api/event-extra-poles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, poles: next }),
+      }),
+      ...Object.entries(updatedAssignments).map(([memberId, poleIds]) =>
+        fetch('/api/event-poles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId, memberId, poleIds }),
+        })
+      ),
+    ])
   }
 
   const deleteEvent = async (eventId: string) => {
@@ -1010,7 +1085,7 @@ const removeVideo = (memberId: string, index: number) => {
       </div>
 
       {/* 記録入力ダイアログ */}
-      <Dialog open={recordDialog !== null} onOpenChange={open => !open && setRecordDialog(null)}>
+      <Dialog open={recordDialog !== null} onOpenChange={open => { if (!open) handleRecordDialogClose() }}>
         <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0" suppressAutoFocus>
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">{recordDialog?.title}</DialogTitle>
@@ -1033,7 +1108,8 @@ const removeVideo = (memberId: string, index: number) => {
                 const isExpanded = expandedRecordMemberId === member.id
                 const currentRecord = eventRecords[recordDialog.id]?.[member.id] ?? ''
                 const assignedIds = eventPoles[recordDialog.id]?.[member.id] ?? []
-                const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
+                const allPolesForRecord = [...poles, ...(eventExtraPoles?.[recordDialog.id] ?? [])]
+                const assignedPoles = allPolesForRecord.filter(p => assignedIds.includes(p.id))
                 const commitRecord = (m: string, cm: string) => {
                   updateRecord(recordDialog.id, member.id, formatRecord(m, cm))
                 }
@@ -1323,7 +1399,7 @@ const removeVideo = (memberId: string, index: number) => {
             })()}
           </div>
           <div className="px-4 pb-4 pt-3 border-t shrink-0">
-            <Button variant="outline" className="w-full" onClick={() => setRecordDialog(null)}>
+            <Button variant="outline" className="w-full" onClick={handleRecordDialogClose}>
               閉じる
             </Button>
           </div>
@@ -1428,7 +1504,7 @@ const removeVideo = (memberId: string, index: number) => {
       {/* ポール割り当てダイアログ */}
       <Dialog
         open={poleDialog !== null}
-        onOpenChange={open => { if (!open) { setPoleDialog(null); setExpandedMemberId(null); setExpandedPoleId(null) } }}
+        onOpenChange={open => { if (!open) { setPoleDialog(null); setExpandedMemberId(null); setExpandedPoleId(null); setExtraPoleInput('') } }}
       >
         <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
@@ -1486,71 +1562,181 @@ const removeVideo = (memberId: string, index: number) => {
           </div>
 
           <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
-            {poleViewMode === 'member' ? (
-              /* ── クラブ生軸ビュー ── */
-              (() => {
-                const eventId = poleDialog?.event.id ?? ''
-                const targetMembers = filterMembersByTargetGrades(members, poleDialog?.event.targetGrades)
-                if (targetMembers.length === 0) return (
-                  <p className="text-sm text-muted-foreground text-center py-4">対象メンバーがいません</p>
-                )
-                return (
-                  <>
-                    {targetMembers.map(member => {
-                      const assignedIds = eventPoles[eventId]?.[member.id] ?? []
-                      const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
-                      const isExpanded = expandedMemberId === member.id
-                      const isAbsent = (eventAbsences?.[eventId] ?? []).includes(member.id)
+            {(() => {
+              const eventId = poleDialog?.event.id ?? ''
+              const allPoles = [...poles, ...(eventExtraPoles?.[eventId] ?? [])]
+              return (
+                <>
+                  {poleViewMode === 'member' ? (
+                    /* ── クラブ生軸ビュー ── */
+                    (() => {
+                      const targetMembers = filterMembersByTargetGrades(members, poleDialog?.event.targetGrades)
+                      if (targetMembers.length === 0) return (
+                        <p className="text-sm text-muted-foreground text-center py-4">対象メンバーがいません</p>
+                      )
                       return (
-                        <div key={member.id} className="rounded-xl border overflow-hidden">
-                          <button
-                            className="flex items-center gap-3 w-full text-left px-3 py-3"
-                            onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <span className="font-medium text-sm">{member.name}</span>
-                              <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
-                            </div>
-                            <div className="flex items-center gap-1 flex-wrap justify-end max-w-[55%]">
-                              {isAbsent ? (
-                                <Badge variant="secondary" className="text-xs">不参加</Badge>
-                              ) : assignedPoles.length === 0 ? (
-                                <span className="text-xs text-muted-foreground">未選択</span>
-                              ) : (
-                                assignedPoles.map(p => (
-                                  <Badge key={p.id} variant="secondary" className="font-mono text-xs">{p.size}</Badge>
-                                ))
-                              )}
-                            </div>
-                          </button>
+                        <>
+                          {targetMembers.map(member => {
+                            const assignedIds = eventPoles[eventId]?.[member.id] ?? []
+                            const assignedPoles = allPoles.filter(p => assignedIds.includes(p.id))
+                            const isExpanded = expandedMemberId === member.id
+                            const isAbsent = (eventAbsences?.[eventId] ?? []).includes(member.id)
+                            return (
+                              <div key={member.id} className="rounded-xl border overflow-hidden">
+                                <button
+                                  className="flex items-center gap-3 w-full text-left px-3 py-3"
+                                  onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-medium text-sm">{member.name}</span>
+                                    <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 flex-wrap justify-end max-w-[55%]">
+                                    {isAbsent ? (
+                                      <Badge variant="secondary" className="text-xs">不参加</Badge>
+                                    ) : assignedPoles.length === 0 ? (
+                                      <span className="text-xs text-muted-foreground">未選択</span>
+                                    ) : (
+                                      assignedPoles.map(p => (
+                                        <Badge key={p.id} variant="secondary" className="font-mono text-xs">{p.size}</Badge>
+                                      ))
+                                    )}
+                                  </div>
+                                </button>
+                                {isExpanded && (
+                                  <div className="border-t px-3 py-3 space-y-1.5 bg-muted/20">
+                                    <p className="text-xs text-muted-foreground mb-2">使用するポールをタップして選択（複数可）</p>
+                                    {/* 不参加チェック */}
+                                    <button
+                                      onClick={() => {
+                                        toggleAbsence(eventId, member.id)
+                                        if (!isAbsent) setExpandedMemberId(null)
+                                      }}
+                                      className={cn(
+                                        'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
+                                        isAbsent ? 'border-gray-400 bg-gray-100' : 'bg-background'
+                                      )}
+                                    >
+                                      <div className={cn(
+                                        'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                                        isAbsent ? 'bg-gray-400 border-gray-400' : 'border-muted-foreground/40'
+                                      )}>
+                                        {isAbsent && <Check className="h-3 w-3 text-white" />}
+                                      </div>
+                                      <span className="text-sm font-medium">不参加</span>
+                                    </button>
+                                    {/* ポールリスト（不参加時は非表示） */}
+                                    {!isAbsent && allPoles.map(pole => {
+                                      const selected = assignedIds.includes(pole.id)
+                                      const isExtra = (eventExtraPoles?.[eventId] ?? []).some(p => p.id === pole.id)
+                                      return (
+                                        <button
+                                          key={pole.id}
+                                          onClick={() => togglePole(eventId, member.id, pole.id)}
+                                          className={cn(
+                                            'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
+                                            selected ? 'border-orange-300 bg-orange-50' : 'bg-background'
+                                          )}
+                                        >
+                                          <div className={cn(
+                                            'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                                            selected ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
+                                          )}>
+                                            {selected && <Check className="h-3 w-3 text-white" />}
+                                          </div>
+                                          <span className="font-mono text-sm font-medium">{pole.size}</span>
+                                          {isExtra && (
+                                            <span className="text-xs text-muted-foreground ml-auto">管理外</span>
+                                          )}
+                                        </button>
+                                      )
+                                    })}
+                                    {/* クラブ管理外ポールの追加（不参加時は非表示） */}
+                                    {!isAbsent && (
+                                      <div className="pt-2 mt-1 border-t border-dashed">
+                                        <p className="text-xs text-muted-foreground mb-1.5">クラブ管理以外のポールを設定</p>
+                                        <div className="flex gap-2">
+                                          <Input
+                                            value={expandedMemberId === member.id ? extraPoleInput : ''}
+                                            onChange={e => setExtraPoleInput(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter') addExtraPole(eventId, member.id, extraPoleInput) }}
+                                            placeholder="例: 11.2-80"
+                                            className="text-base flex-1 h-9"
+                                          />
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="shrink-0 h-9"
+                                            onClick={() => addExtraPole(eventId, member.id, extraPoleInput)}
+                                            disabled={!extraPoleInput.trim()}
+                                          >
+                                            追加
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </>
+                      )
+                    })()
+                  ) : (
+                    /* ── ポール軸ビュー ── */
+                    allPoles.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">登録されているポールがありません</p>
+                    ) : allPoles.map(pole => {
+                      const poleTargetMembers = filterMembersByTargetGrades(members, poleDialog?.event.targetGrades)
+                        .filter(m => !(eventAbsences?.[eventId] ?? []).includes(m.id))
+                      const assignedMembers = poleTargetMembers.filter(m =>
+                        (eventPoles[eventId]?.[m.id] ?? []).includes(pole.id)
+                      )
+                      const isExpanded = expandedPoleId === pole.id
+                      const isExtra = (eventExtraPoles?.[eventId] ?? []).some(p => p.id === pole.id)
+
+                      return (
+                        <div key={pole.id} className="rounded-xl border overflow-hidden">
+                          <div className="flex items-center">
+                            <button
+                              className="flex items-center gap-3 flex-1 text-left px-3 py-3"
+                              onClick={() => setExpandedPoleId(isExpanded ? null : pole.id)}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <span className="font-mono font-medium text-sm">{pole.size}</span>
+                                {isExtra && (
+                                  <span className="text-xs text-muted-foreground ml-2">この大会のみ</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 flex-wrap justify-end max-w-[55%]">
+                                {assignedMembers.length === 0 ? (
+                                  <span className="text-xs text-muted-foreground">未割当</span>
+                                ) : (
+                                  assignedMembers.map(m => (
+                                    <Badge key={m.id} variant="secondary" className="text-xs">{m.name}</Badge>
+                                  ))
+                                )}
+                              </div>
+                            </button>
+                            {isExtra && (
+                              <button
+                                className="pr-3 pl-1 text-muted-foreground hover:text-destructive transition-colors"
+                                onClick={() => removeExtraPole(eventId, pole.id)}
+                                aria-label="このポールを削除"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
                           {isExpanded && (
                             <div className="border-t px-3 py-3 space-y-1.5 bg-muted/20">
-                              <p className="text-xs text-muted-foreground mb-2">使用するポールをタップして選択（複数可）</p>
-                              {/* 不参加チェック */}
-                              <button
-                                onClick={() => {
-                                  toggleAbsence(eventId, member.id)
-                                  if (!isAbsent) setExpandedMemberId(null)
-                                }}
-                                className={cn(
-                                  'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
-                                  isAbsent ? 'border-gray-400 bg-gray-100' : 'bg-background'
-                                )}
-                              >
-                                <div className={cn(
-                                  'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
-                                  isAbsent ? 'bg-gray-400 border-gray-400' : 'border-muted-foreground/40'
-                                )}>
-                                  {isAbsent && <Check className="h-3 w-3 text-white" />}
-                                </div>
-                                <span className="text-sm font-medium">不参加</span>
-                              </button>
-                              {/* ポールリスト（不参加時は非表示） */}
-                              {!isAbsent && poles.map(pole => {
-                                const selected = assignedIds.includes(pole.id)
+                              <p className="text-xs text-muted-foreground mb-2">使用するクラブ生をタップして選択（複数可）</p>
+                              {poleTargetMembers.map(member => {
+                                const selected = (eventPoles[eventId]?.[member.id] ?? []).includes(pole.id)
                                 return (
                                   <button
-                                    key={pole.id}
+                                    key={member.id}
                                     onClick={() => togglePole(eventId, member.id, pole.id)}
                                     className={cn(
                                       'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
@@ -1563,7 +1749,10 @@ const removeVideo = (memberId: string, index: number) => {
                                     )}>
                                       {selected && <Check className="h-3 w-3 text-white" />}
                                     </div>
-                                    <span className="font-mono text-sm font-medium">{pole.size}</span>
+                                    <div>
+                                      <span className="text-sm font-medium">{member.name}</span>
+                                      <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
+                                    </div>
                                   </button>
                                 )
                               })}
@@ -1571,79 +1760,16 @@ const removeVideo = (memberId: string, index: number) => {
                           )}
                         </div>
                       )
-                    })}
-                  </>
-                )
-              })()
-            ) : (
-              /* ── ポール軸ビュー ── */
-              poles.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">登録されているポールがありません</p>
-              ) : poles.map(pole => {
-                const eventId = poleDialog?.event.id ?? ''
-                const poleTargetMembers = filterMembersByTargetGrades(members, poleDialog?.event.targetGrades)
-                  .filter(m => !(eventAbsences?.[eventId] ?? []).includes(m.id))
-                const assignedMembers = poleTargetMembers.filter(m =>
-                  (eventPoles[eventId]?.[m.id] ?? []).includes(pole.id)
-                )
-                const isExpanded = expandedPoleId === pole.id
+                    })
+                  )}
 
-                return (
-                  <div key={pole.id} className="rounded-xl border overflow-hidden">
-                    <button
-                      className="flex items-center gap-3 w-full text-left px-3 py-3"
-                      onClick={() => setExpandedPoleId(isExpanded ? null : pole.id)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <span className="font-mono font-medium text-sm">{pole.size}</span>
-                      </div>
-                      <div className="flex items-center gap-1 flex-wrap justify-end max-w-[65%]">
-                        {assignedMembers.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">未割当</span>
-                        ) : (
-                          assignedMembers.map(m => (
-                            <Badge key={m.id} variant="secondary" className="text-xs">{m.name}</Badge>
-                          ))
-                        )}
-                      </div>
-                    </button>
-                    {isExpanded && (
-                      <div className="border-t px-3 py-3 space-y-1.5 bg-muted/20">
-                        <p className="text-xs text-muted-foreground mb-2">使用するクラブ生をタップして選択（複数可）</p>
-                        {poleTargetMembers.map(member => {
-                          const selected = (eventPoles[eventId]?.[member.id] ?? []).includes(pole.id)
-                          return (
-                            <button
-                              key={member.id}
-                              onClick={() => togglePole(eventId, member.id, pole.id)}
-                              className={cn(
-                                'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
-                                selected ? 'border-orange-300 bg-orange-50' : 'bg-background'
-                              )}
-                            >
-                              <div className={cn(
-                                'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
-                                selected ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
-                              )}>
-                                {selected && <Check className="h-3 w-3 text-white" />}
-                              </div>
-                              <div>
-                                <span className="text-sm font-medium">{member.name}</span>
-                                <span className="text-xs text-muted-foreground ml-2">{gradeLabel(member.grade)}</span>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
+                </>
+              )
+            })()}
           </div>
 
           <div className="px-4 pb-4 pt-3 border-t shrink-0">
-            <Button className="w-full" onClick={() => { setPoleDialog(null); setExpandedMemberId(null); setExpandedPoleId(null) }}>
+            <Button className="w-full" onClick={() => { setPoleDialog(null); setExpandedMemberId(null); setExpandedPoleId(null); setExtraPoleInput('') }}>
               保存する
             </Button>
           </div>
@@ -1732,8 +1858,8 @@ const removeVideo = (memberId: string, index: number) => {
 {/* ▲▲▲ 動画ダイアログ ▲▲▲ */}
 
       {/* ▼▼▼ ポール一覧ダイアログ ▼▼▼ */}
-      <Dialog open={poleListDialog !== null} onOpenChange={open => !open && setPoleListDialog(null)}>
-        <DialogContent className="pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
+      <Dialog open={poleListDialog !== null} onOpenChange={open => { if (!open) { setPoleListDialog(null); setExtraPoleInput('') } }}>
+        <DialogContent className="pointer-events-auto max-h-[85vh] flex flex-col" onPointerDown={e => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>
               本大会での{poleListDialog?.member.name} の使用ポール
@@ -1741,23 +1867,63 @@ const removeVideo = (memberId: string, index: number) => {
           </DialogHeader>
           {(() => {
             if (!poleListDialog) return null
-            const assignedIds = eventPoles[poleListDialog.eventId]?.[poleListDialog.member.id] ?? []
-            const assignedPoles = poles.filter(p => assignedIds.includes(p.id))
-            if (assignedPoles.length === 0) {
-              return (
-                <p className="text-sm text-muted-foreground py-2">
-                  クラブ保有のポールは使用はありません
-                </p>
-              )
-            }
+            const { member, eventId } = poleListDialog
+            const assignedIds = eventPoles[eventId]?.[member.id] ?? []
+            const allPoles = [...poles, ...(eventExtraPoles?.[eventId] ?? [])]
             return (
-              <ul className="space-y-2">
-                {assignedPoles.map(p => (
-                  <li key={p.id} className="flex items-center gap-3 rounded-md border px-4 py-3 text-sm">
-                    <span className="font-mono">{p.size}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="flex flex-col gap-3 overflow-y-auto">
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">使用するポールをタップして選択（複数可）</p>
+                  {allPoles.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">登録されているポールがありません</p>
+                  ) : allPoles.map(pole => {
+                    const selected = assignedIds.includes(pole.id)
+                    const isExtra = (eventExtraPoles?.[eventId] ?? []).some(p => p.id === pole.id)
+                    return (
+                      <button
+                        key={pole.id}
+                        onClick={() => togglePole(eventId, member.id, pole.id)}
+                        className={cn(
+                          'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-colors',
+                          selected ? 'border-orange-300 bg-orange-50' : 'bg-background'
+                        )}
+                      >
+                        <div className={cn(
+                          'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                          selected ? 'bg-orange-400 border-orange-400' : 'border-muted-foreground/40'
+                        )}>
+                          {selected && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <span className="font-mono text-sm font-medium">{pole.size}</span>
+                        {isExtra && (
+                          <span className="text-xs text-muted-foreground ml-auto">管理外</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="border-t border-dashed pt-3">
+                  <p className="text-xs text-muted-foreground mb-1.5">クラブ管理以外のポールを設定</p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={extraPoleInput}
+                      onChange={e => setExtraPoleInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') addExtraPole(eventId, member.id, extraPoleInput) }}
+                      placeholder="例: 11.2-80"
+                      className="text-base flex-1 h-9"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-9"
+                      onClick={() => addExtraPole(eventId, member.id, extraPoleInput)}
+                      disabled={!extraPoleInput.trim()}
+                    >
+                      追加
+                    </Button>
+                  </div>
+                </div>
+              </div>
             )
           })()}
         </DialogContent>

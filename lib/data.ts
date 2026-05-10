@@ -153,6 +153,17 @@ export async function saveEventPoles(data: EventPoles): Promise<void> {
   return writeStorage('event-poles', data)
 }
 
+// 大会別追加ポール（アプリ管理外・この大会のみ使用）: { [eventId]: Pole[] }
+export type EventExtraPoles = Record<string, Pole[]>
+
+export async function getEventExtraPoles(): Promise<EventExtraPoles> {
+  return readStorage<EventExtraPoles>('event-extra-poles', {})
+}
+
+export async function saveEventExtraPoles(data: EventExtraPoles): Promise<void> {
+  return writeStorage('event-extra-poles', data)
+}
+
 // 大会記録: { [eventId]: { [memberId]: string } }  例: "2m10cm"
 export type EventRecords = Record<string, Record<string, string>>
 

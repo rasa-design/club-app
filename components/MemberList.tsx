@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Member, Event, EventRecords } from '@/lib/data'
 import { gradeLabel, currentSchoolYear } from '@/lib/grade'
 import {
@@ -42,6 +43,7 @@ export default function MemberList({
   members: Member[]
   initialYear: number
 }) {
+  const router = useRouter()
   const [schoolYear, setSchoolYear] = useState(initialYear)
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [sortOrder, setSortOrder] = useState<SortOrder>('grade')
@@ -52,6 +54,16 @@ export default function MemberList({
   const [goalInput, setGoalInput] = useState<{ m: string; cm: string }>({ m: '', cm: '' })
   const [pbCounts, setPbCounts] = useState<Record<string, number | null>>({})
   const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const memberId = params.get('member')
+    if (memberId) {
+      const member = initialMembers.find(m => m.id === memberId)
+      if (member) setSelectedMember(member)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     fetch('/api/members/years')
@@ -317,6 +329,9 @@ export default function MemberList({
                   const { m, cm } = parseRecord(goals[selectedMember.id])
                   return m && cm ? Number(m) * 100 + Number(cm) : null
                 })() : null}
+                onEventClick={eventId => {
+                  router.push(`/payments?event=${eventId}&member=${selectedMember.id}&from=members`)
+                }}
               />
             )}
           </div>

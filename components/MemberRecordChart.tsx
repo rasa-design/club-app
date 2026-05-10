@@ -13,10 +13,12 @@ import {
 import { Line } from 'react-chartjs-2'
 import type { ChartOptions, Plugin } from 'chart.js'
 import type { Event, EventRecords } from '@/lib/data'
+import { ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
 
-type Props = { memberId: string; goalCm?: number | null }
+type Props = { memberId: string; goalCm?: number | null; onEventClick?: (eventId: string) => void }
 
 // ── ヘルパー ─────────────────────────────────────────────────────────────
 
@@ -41,8 +43,8 @@ function formatCm(cm: number): string {
 
 type ChartPoint = { label: string; value: number; eventTitle: string }
 type ListItem   =
-  | { kind: 'record'; label: string; eventTitle: string; value: number }
-  | { kind: 'NM' | 'DNS'; label: string; eventTitle: string }
+  | { kind: 'record'; label: string; eventTitle: string; value: number; eventId: string }
+  | { kind: 'NM' | 'DNS'; label: string; eventTitle: string; eventId: string }
 type TickPx     = { value: number; px: number }
 type XTickPx    = { label: string;  px: number }
 
@@ -85,7 +87,7 @@ const manualGridPlugin: Plugin<'line'> = {
 
 // ── コンポーネント ──────────────────────────────────────────────────────
 
-export default function MemberRecordChart({ memberId, goalCm }: Props) {
+export default function MemberRecordChart({ memberId, goalCm, onEventClick }: Props) {
   const [points,    setPoints]    = useState<ChartPoint[]>([])
   const [listItems, setListItems] = useState<ListItem[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -162,12 +164,12 @@ export default function MemberRecordChart({ memberId, goalCm }: Props) {
         const d     = new Date(event.date)
         const label = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}`
         if (record === 'NM' || record === 'DNS') {
-          items.push({ kind: record, label, eventTitle: event.title })
+          items.push({ kind: record, label, eventTitle: event.title, eventId: event.id })
         } else {
           const cm = parseHeightToCm(record)
           if (cm === null) continue
           pts.push({ label, value: cm, eventTitle: event.title })
-          items.push({ kind: 'record', label, eventTitle: event.title, value: cm })
+          items.push({ kind: 'record', label, eventTitle: event.title, value: cm, eventId: event.id })
         }
       }
       setPoints(pts)
@@ -302,14 +304,23 @@ export default function MemberRecordChart({ memberId, goalCm }: Props) {
       {/* 記録一覧（グラフとは独立して縦スクロール） */}
       <div className="mt-4 space-y-1 max-h-48 overflow-y-auto">
         {[...listItems].reverse().map((item, i) => (
-          <div key={i} className="flex justify-between gap-4 text-sm">
-            <span className="text-muted-foreground truncate">{item.label}　{item.eventTitle}</span>
+          <button
+            key={i}
+            className={cn(
+              'flex items-center gap-2 w-full text-left text-sm px-3 py-3 rounded-lg',
+              onEventClick ? 'active:bg-muted cursor-pointer' : 'cursor-default'
+            )}
+            onClick={() => onEventClick?.(item.eventId)}
+            disabled={!onEventClick}
+          >
+            <span className="text-muted-foreground truncate flex-1">{item.label}　{item.eventTitle}</span>
             {item.kind === 'record' ? (
               <span className="font-medium tabular-nums shrink-0">{formatCm(item.value)}</span>
             ) : (
               <span className="text-muted-foreground font-mono shrink-0">{item.kind}</span>
             )}
-          </div>
+            {onEventClick && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+          </button>
         ))}
       </div>
     </div>
