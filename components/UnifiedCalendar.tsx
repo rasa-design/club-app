@@ -191,12 +191,15 @@ const [poleListDialog, setPoleListDialog] = useState<{ member: Member; eventId: 
   }, [])
 
   const handleRecordDialogClose = () => {
-    setRecordDialog(null)
-    setExpandedRecordMemberId(null)
     const memberId = fromMemberIdRef.current
     if (memberId) {
+      // ダイアログを開いたまま遷移することで、ナビゲーション中にカレンダーが
+      // 一瞬見えるちらつきを防ぐ
       fromMemberIdRef.current = null
       router.push(`/members?member=${memberId}`)
+    } else {
+      setRecordDialog(null)
+      setExpandedRecordMemberId(null)
     }
   }
 
