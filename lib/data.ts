@@ -63,6 +63,21 @@ export async function getLatestMembersYear(): Promise<number> {
   return years[0] ?? _currentSchoolYear()
 }
 
+// members.json を1回だけ読んで year・members・years一覧を同時に返す
+export async function getMembersWithYear(): Promise<{
+  year: number
+  members: Member[]
+  years: number[]
+}> {
+  const data = await getMembersData()
+  const years = Object.keys(data)
+    .map(Number)
+    .filter((y) => data[String(y)].length > 0)
+    .sort((a, b) => b - a)
+  const year = years[0] ?? _currentSchoolYear()
+  return { year, members: data[String(year)] ?? [], years: years.length > 0 ? years : [year] }
+}
+
 export async function getPayments(): Promise<Payments> {
   return readStorage<Payments>('payments', {})
 }

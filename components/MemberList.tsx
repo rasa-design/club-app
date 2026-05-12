@@ -4,6 +4,47 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Member, Event, EventRecords } from '@/lib/data'
 import { gradeLabel, currentSchoolYear } from '@/lib/grade'
+
+function calcPbCounts(
+  members: Member[],
+  events: Event[],
+  records: EventRecords
+): Record<string, number | null> {
+  const parseCm = (raw: string): number | null => {
+    const s = raw.trim()
+    const mCm = s.match(/^(\d+)m(\d+(?:\.\d+)?)cm$/)
+    if (mCm) return Math.round(Number(mCm[1]) * 100 + Number(mCm[2]))
+    const mOnly = s.match(/^(\d+)m(\d+(?:\.\d+)?)$/)
+    if (mOnly) return Math.round(Number(mOnly[1]) * 100 + Number(mOnly[2]))
+    const cmOnly = s.match(/^(\d+(?:\.\d+)?)cm$/)
+    if (cmOnly) return Math.round(Number(cmOnly[1]))
+    const dec = s.match(/^(\d+)\.(\d+)$/)
+    if (dec) return Math.round(Number(s) * 100)
+    return null
+  }
+  const sy = currentSchoolYear()
+  const syStart = new Date(`${sy}-04-01`)
+  const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date))
+  const prevEvents = sorted.filter(e => new Date(e.date) < syStart)
+  const seasonEvents = sorted.filter(e => new Date(e.date) >= syStart)
+  const counts: Record<string, number | null> = {}
+  for (const member of members) {
+    let base: number | null = null
+    for (const event of prevEvents) {
+      const cm = parseCm(records[event.id]?.[member.id] ?? '')
+      if (cm !== null && (base === null || cm > base)) base = cm
+    }
+    if (base === null) { counts[member.id] = null; continue }
+    let best = base
+    let pb = 0
+    for (const event of seasonEvents) {
+      const cm = parseCm(records[event.id]?.[member.id] ?? '')
+      if (cm !== null && cm > best) { best = cm; pb++ }
+    }
+    counts[member.id] = pb
+  }
+  return counts
+}
 import {
   Select,
   SelectContent,
@@ -39,22 +80,32 @@ function sortMembers(members: Member[], order: SortOrder): Member[] {
 export default function MemberList({
   members: initialMembers,
   initialYear,
+  initialYears,
+  initialGoals,
+  initialEvents,
+  initialEventRecords,
 }: {
   members: Member[]
   initialYear: number
+  initialYears: number[]
+  initialGoals: Record<string, string>
+  initialEvents: Event[]
+  initialEventRecords: EventRecords
 }) {
   const router = useRouter()
   const [schoolYear, setSchoolYear] = useState(initialYear)
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [sortOrder, setSortOrder] = useState<SortOrder>('grade')
-  const [selectableYears, setSelectableYears] = useState<number[]>([initialYear])
+  const [selectableYears] = useState<number[]>(initialYears)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
-  const [goals, setGoals] = useState<Record<string, string>>({})
+  const [goals, setGoals] = useState<Record<string, string>>(initialGoals)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState<{ m: string; cm: string }>({ m: '', cm: '' })
-  const [pbCounts, setPbCounts] = useState<Record<string, number | null>>({})
-  const [eventsData, setEventsData] = useState<Event[]>([])
-  const [recordsData, setRecordsData] = useState<EventRecords>({})
+  const [pbCounts, setPbCounts] = useState<Record<string, number | null>>(() =>
+    calcPbCounts(initialMembers, initialEvents, initialEventRecords)
+  )
+  const eventsData = initialEvents
+  const recordsData = initialEventRecords
   const isFirstRender = useRef(true)
 
   useEffect(() => {
@@ -68,75 +119,14 @@ export default function MemberList({
   }, [])
 
   useEffect(() => {
-    fetch('/api/members/years')
-      .then(r => r.json())
-      .then((years: number[]) => setSelectableYears(years))
-  }, [])
-
-  useEffect(() => {
-    fetch('/api/member-goals')
-      .then(r => r.json())
-      .then((data: Record<string, string>) => setGoals(data))
-  }, [])
-
-  useEffect(() => {
-    const parseCm = (raw: string): number | null => {
-      const s = raw.trim()
-      const mCm = s.match(/^(\d+)m(\d+(?:\.\d+)?)cm$/)
-      if (mCm) return Math.round(Number(mCm[1]) * 100 + Number(mCm[2]))
-      const mOnly = s.match(/^(\d+)m(\d+(?:\.\d+)?)$/)
-      if (mOnly) return Math.round(Number(mOnly[1]) * 100 + Number(mOnly[2]))
-      const cmOnly = s.match(/^(\d+(?:\.\d+)?)cm$/)
-      if (cmOnly) return Math.round(Number(cmOnly[1]))
-      const dec = s.match(/^(\d+)\.(\d+)$/)
-      if (dec) return Math.round(Number(s) * 100)
-      return null
-    }
-
-    Promise.all([
-      fetch('/api/events').then(r => r.json()) as Promise<Event[]>,
-      fetch('/api/event-records').then(r => r.json()) as Promise<EventRecords>,
-    ]).then(([events, records]) => {
-      setEventsData(events)
-      setRecordsData(records)
-
-      const sy = currentSchoolYear()
-      const syStart = new Date(`${sy}-04-01`)
-      const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date))
-      const prevEvents   = sorted.filter(e => new Date(e.date) < syStart)
-      const seasonEvents = sorted.filter(e => new Date(e.date) >= syStart)
-
-      const counts: Record<string, number | null> = {}
-      for (const member of members) {
-        // 昨シーズン以前の自己ベスト
-        let base: number | null = null
-        for (const event of prevEvents) {
-          const cm = parseCm(records[event.id]?.[member.id] ?? '')
-          if (cm !== null && (base === null || cm > base)) base = cm
-        }
-
-        // 昨シーズンの記録がない場合は null（表示側で「昨シーズンの記録なし」）
-        if (base === null) { counts[member.id] = null; continue }
-
-        // 今シーズンのPB更新回数（baseからスタート）
-        let best = base
-        let pb = 0
-        for (const event of seasonEvents) {
-          const cm = parseCm(records[event.id]?.[member.id] ?? '')
-          if (cm !== null && cm > best) { best = cm; pb++ }
-        }
-        counts[member.id] = pb
-      }
-      setPbCounts(counts)
-    })
-  }, [members])
-
-  useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
     fetch(`/api/members?year=${schoolYear}`)
       .then(r => r.json())
-      .then((data: Member[]) => setMembers(data))
-  }, [schoolYear])
+      .then((data: Member[]) => {
+        setMembers(data)
+        setPbCounts(calcPbCounts(data, initialEvents, initialEventRecords))
+      })
+  }, [schoolYear]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const sorted = sortMembers(members, sortOrder)
 
