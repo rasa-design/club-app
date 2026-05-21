@@ -24,7 +24,7 @@ function calcPbCounts(
   }
   const sy = currentSchoolYear()
   const syStart = new Date(`${sy}-04-01`)
-  const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date))
+  const sorted = [...(Array.isArray(events) ? events : [])].sort((a, b) => a.date.localeCompare(b.date))
   const prevEvents = sorted.filter(e => new Date(e.date) < syStart)
   const seasonEvents = sorted.filter(e => new Date(e.date) >= syStart)
   const counts: Record<string, number | null> = {}
@@ -34,14 +34,20 @@ function calcPbCounts(
       const cm = parseCm(records[event.id]?.[member.id] ?? '')
       if (cm !== null && (base === null || cm > base)) base = cm
     }
-    if (base === null) { counts[member.id] = null; continue }
     let best = base
     let pb = 0
     for (const event of seasonEvents) {
       const cm = parseCm(records[event.id]?.[member.id] ?? '')
-      if (cm !== null && cm > best) { best = cm; pb++ }
+      if (cm !== null) {
+        if (best === null) {
+          best = cm // 今シーズン初回記録をベースに設定
+        } else if (cm > best) {
+          best = cm
+          pb++
+        }
+      }
     }
-    counts[member.id] = pb
+    counts[member.id] = best !== null ? pb : null
   }
   return counts
 }
@@ -96,7 +102,7 @@ export default function MemberList({
   const [schoolYear, setSchoolYear] = useState(initialYear)
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [sortOrder, setSortOrder] = useState<SortOrder>('grade')
-  const [selectableYears] = useState<number[]>(initialYears)
+  const [selectableYears] = useState<number[]>(initialYears ?? [initialYear])
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [goals, setGoals] = useState<Record<string, string>>(initialGoals)
   const [editingGoal, setEditingGoal] = useState(false)
@@ -157,7 +163,7 @@ export default function MemberList({
             onClick={() => setSortOrder('grade')}
             className={cn(
               'rounded-none h-9 w-16 border-0',
-              sortOrder === 'grade' && 'bg-muted font-semibold'
+              sortOrder === 'grade' ? 'bg-muted-foreground/20 text-foreground font-semibold' : 'text-muted-foreground'
             )}
           >
             学年順
@@ -169,7 +175,7 @@ export default function MemberList({
             onClick={() => setSortOrder('name')}
             className={cn(
               'rounded-none h-9 w-16 border-0',
-              sortOrder === 'name' && 'bg-muted font-semibold'
+              sortOrder === 'name' ? 'bg-muted-foreground/20 text-foreground font-semibold' : 'text-muted-foreground'
             )}
           >
             五十音順
@@ -193,7 +199,7 @@ export default function MemberList({
               <div key={member.id}>
                 {showGradeHeader && (
                   <div className="px-1 pt-3 pb-1 first:pt-0">
-                    <span className="text-xs font-semibold text-muted-foreground">
+                    <span className="text-sm font-bold text-foreground/60">
                       {gradeLabel(member.grade)}
                     </span>
                   </div>
@@ -306,7 +312,7 @@ export default function MemberList({
               </div>
               {pbCounts[selectedMember.id] === null ? (
                 <p className="text-sm font-medium pt-1 px-3" style={{ color: '#6366f1' }}>
-                  昨シーズンの記録なし
+                  今シーズンの記録がありません
                 </p>
               ) : (
                 <p className="text-sm font-medium pt-1 px-3" style={{ color: '#6366f1' }}>
