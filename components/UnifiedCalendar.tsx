@@ -590,6 +590,18 @@ const removeVideo = (memberId: string, index: number) => {
         </Button>
       </div>
 
+      {/* 今月に戻るリンク */}
+      {(year !== today.getFullYear() || month !== today.getMonth() + 1) && (
+        <div className="flex justify-center -mt-2">
+          <button
+            className="text-xs text-primary underline underline-offset-2"
+            onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth() + 1) }}
+          >
+            今月に戻る
+          </button>
+        </div>
+      )}
+
       {/* カレンダーグリッド */}
       <div
         className="grid grid-cols-7 border rounded-xl overflow-hidden"
@@ -626,7 +638,7 @@ const removeVideo = (memberId: string, index: number) => {
               onClick={() => openDay(date)}
               disabled={!tappable}
               className={cn(
-                'aspect-square p-1 flex flex-col items-center gap-0.5 rounded-lg transition-colors',
+                'aspect-square min-h-[44px] p-1 flex flex-col items-center gap-0.5 rounded-lg transition-colors',
                 tappable && 'cursor-pointer hover:bg-muted/50 active:bg-muted',
                 !tappable && 'cursor-default',
               )}
@@ -641,8 +653,8 @@ const removeVideo = (memberId: string, index: number) => {
                 {day}
               </span>
               <div className="flex gap-0.5 items-center">
-                {hasPractice && <span className="w-1.5 h-1.5 rounded-full bg-[#3BBFAD]" />}
-                {hasEvent && <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
+                {hasPractice && <span className="w-2 h-2 rounded-full bg-[#3BBFAD]" />}
+                {hasEvent && <span className="w-2 h-2 rounded-full bg-orange-400" />}
               </div>
             </button>
           )
@@ -666,7 +678,10 @@ const removeVideo = (memberId: string, index: number) => {
         <DialogContent className="max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3 border-b">
             <DialogTitle className="text-base">
-              {selectedDate && `${sm}/${sd}（${DAYS_JA[selectedDow]}）`}
+              {selectedDate && `${sm}/${sd}（${DAYS_JA[selectedDow]}）${
+                selectedSlots.length > 0 && selectedEvents.length === 0 ? ' の練習' :
+                selectedSlots.length === 0 && selectedEvents.length > 0 ? ' の大会' : ''
+              }`}
             </DialogTitle>
           </DialogHeader>
 
@@ -718,7 +733,7 @@ const removeVideo = (memberId: string, index: number) => {
                               value={state.start}
                               onChange={e => updateTime(member.id, 'start', e.target.value)}
                               onBlur={() => saveTimeForMember(member.id)}
-                              className="flex-1 h-9 text-sm"
+                              className="flex-1 h-9 text-base"
                             />
                             <span className="text-muted-foreground text-sm shrink-0">〜</span>
                             <Input
@@ -726,7 +741,7 @@ const removeVideo = (memberId: string, index: number) => {
                               value={state.end}
                               onChange={e => updateTime(member.id, 'end', e.target.value)}
                               onBlur={() => saveTimeForMember(member.id)}
-                              className="flex-1 h-9 text-sm"
+                              className="flex-1 h-9 text-base"
                             />
                           </div>
                         </div>
@@ -1028,14 +1043,24 @@ const removeVideo = (memberId: string, index: number) => {
                       <div className="flex items-center justify-between gap-2">
                         <div className="font-semibold text-sm">{e.title}</div>
                         <div className="flex gap-1 flex-wrap justify-end">
+                          {!isEventDay && (
+                            <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/40">
+                              大会前
+                            </Badge>
+                          )}
                           {poleCount > 0 && (
                             <Badge variant="outline" className="text-xs text-orange-500 border-orange-300">
                               ポール選択本数{poleCount}
                             </Badge>
                           )}
-                          {recordCount > 0 && (
+                          {isEventDay && recordCount > 0 && (
                             <Badge variant="outline" className="text-xs text-blue-500 border-blue-300">
                               記録{recordCount}件
+                            </Badge>
+                          )}
+                          {isEventDay && recordCount === 0 && (
+                            <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/40">
+                              記録未入力
                             </Badge>
                           )}
                         </div>
@@ -1068,7 +1093,9 @@ const removeVideo = (memberId: string, index: number) => {
                         <p className="text-xs text-muted-foreground">{e.description}</p>
                       )}
                       <p className="text-xs text-orange-400 pt-1">
-                        {isEventDay ? 'タップして記録を登録' : 'タップしてポールを登録'}
+                        {isEventDay
+                          ? recordCount > 0 ? 'タップして記録を登録/確認' : 'タップして結果を入力'
+                          : poleCount > 0 ? 'タップしてポール選択を確認' : 'タップしてポールを選択'}
                       </p>
                     </div>
                   </CardContent>
