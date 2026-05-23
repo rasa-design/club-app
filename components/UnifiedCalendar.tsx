@@ -1095,7 +1095,7 @@ const removeVideo = (memberId: string, index: number) => {
                       <p className="text-xs text-orange-400 pt-1">
                         {isEventDay
                           ? recordCount > 0 ? 'タップして記録を登録/確認' : 'タップして結果を入力'
-                          : poleCount > 0 ? 'タップしてポール選択を確認' : 'タップしてポールを選択'}
+                          : poleCount > 0 ? 'タップしてポール選択/確認' : 'タップしてポールを選択'}
                       </p>
                     </div>
                   </CardContent>
