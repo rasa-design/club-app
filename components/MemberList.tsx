@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { Member, Event, EventRecords } from '@/lib/data'
 import { gradeLabel, currentSchoolYear } from '@/lib/grade'
 
-function calcPbCounts(
+type MemberStats = { pbCount: number | null; bestRecord: string | null }
+
+function calcMemberStats(
   members: Member[],
   events: Event[],
   records: EventRecords
-): Record<string, number | null> {
+): Record<string, MemberStats> {
   const parseCm = (raw: string): number | null => {
     const s = raw.trim()
     const mCm = s.match(/^(\d+)m(\d+(?:\.\d+)?)cm$/)
@@ -22,13 +24,25 @@ function calcPbCounts(
     if (dec) return Math.round(Number(s) * 100)
     return null
   }
+  const formatCm = (cm: number): string => {
+    const m = Math.floor(cm / 100)
+    const c = cm % 100
+    return `${m}m${c}cm`
+  }
   const sy = currentSchoolYear()
   const syStart = new Date(`${sy}-04-01`)
   const sorted = [...(Array.isArray(events) ? events : [])].sort((a, b) => a.date.localeCompare(b.date))
   const prevEvents = sorted.filter(e => new Date(e.date) < syStart)
   const seasonEvents = sorted.filter(e => new Date(e.date) >= syStart)
-  const counts: Record<string, number | null> = {}
+  const stats: Record<string, MemberStats> = {}
   for (const member of members) {
+    // 全大会を通じた自己ベスト
+    let overallBest: number | null = null
+    for (const event of sorted) {
+      const cm = parseCm(records[event.id]?.[member.id] ?? '')
+      if (cm !== null && (overallBest === null || cm > overallBest)) overallBest = cm
+    }
+    // 今シーズンの自己ベスト更新回数
     let base: number | null = null
     for (const event of prevEvents) {
       const cm = parseCm(records[event.id]?.[member.id] ?? '')
@@ -40,16 +54,19 @@ function calcPbCounts(
       const cm = parseCm(records[event.id]?.[member.id] ?? '')
       if (cm !== null) {
         if (best === null) {
-          best = cm // 今シーズン初回記録をベースに設定
+          best = cm
         } else if (cm > best) {
           best = cm
           pb++
         }
       }
     }
-    counts[member.id] = best !== null ? pb : null
+    stats[member.id] = {
+      pbCount: best !== null ? pb : null,
+      bestRecord: overallBest !== null ? formatCm(overallBest) : null,
+    }
   }
-  return counts
+  return stats
 }
 import {
   Select,
@@ -107,8 +124,8 @@ export default function MemberList({
   const [goals, setGoals] = useState<Record<string, string>>(initialGoals)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState<{ m: string; cm: string }>({ m: '', cm: '' })
-  const [pbCounts, setPbCounts] = useState<Record<string, number | null>>(() =>
-    calcPbCounts(initialMembers, initialEvents, initialEventRecords)
+  const [memberStats, setMemberStats] = useState<Record<string, MemberStats>>(() =>
+    calcMemberStats(initialMembers, initialEvents, initialEventRecords)
   )
   const eventsData = initialEvents
   const recordsData = initialEventRecords
@@ -130,7 +147,7 @@ export default function MemberList({
       .then(r => r.json())
       .then((data: Member[]) => {
         setMembers(data)
-        setPbCounts(calcPbCounts(data, initialEvents, initialEventRecords))
+        setMemberStats(calcMemberStats(data, initialEvents, initialEventRecords))
       })
   }, [schoolYear]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -214,13 +231,17 @@ export default function MemberList({
                     </span>
                   )}
                   <span className="text-sm font-medium flex-1">{member.name}</span>
-                  <div className="flex flex-col items-end gap-0.5" style={{ minHeight: '2.5rem' }}>
-                    <span className="text-xs font-mono font-medium" style={{ color: '#3BBFAD', visibility: goals[member.id] ? 'visible' : 'hidden' }}>
-                      今シーズン目標 {goals[member.id] ?? '　'}
-                    </span>
-                    <span className="text-xs font-medium" style={{ color: '#6366f1', visibility: pbCounts[member.id] !== null && (pbCounts[member.id] ?? 0) > 0 ? 'visible' : 'hidden' }}>
-                      自己ベスト更新 {pbCounts[member.id]}回
-                    </span>
+                  <div className="flex flex-col items-end gap-0.5">
+                    {memberStats[member.id]?.bestRecord && (
+                      <span className="text-xs font-mono font-medium" style={{ color: '#6366f1' }}>
+                        自己ベスト {memberStats[member.id].bestRecord}
+                      </span>
+                    )}
+                    {goals[member.id] && (
+                      <span className="text-xs font-mono font-medium" style={{ color: '#3BBFAD' }}>
+                        目標 {goals[member.id]}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -310,15 +331,24 @@ export default function MemberList({
                   </>
                 )}
               </div>
-              {pbCounts[selectedMember.id] === null ? (
-                <p className="text-sm font-medium pt-1 px-3" style={{ color: '#6366f1' }}>
-                  今シーズンの記録がありません
-                </p>
-              ) : (
-                <p className="text-sm font-medium pt-1 px-3" style={{ color: '#6366f1' }}>
-                  今シーズンの自己ベスト更新　<span className="font-mono">{pbCounts[selectedMember.id] ?? 0}</span>回
-                </p>
-              )}
+              <div className="flex items-center justify-between pt-1 px-3">
+                {memberStats[selectedMember.id]?.bestRecord ? (
+                  <p className="text-sm font-medium" style={{ color: '#f59e0b' }}>
+                    ★ 自己ベスト　<span className="font-mono">{memberStats[selectedMember.id].bestRecord}</span>
+                  </p>
+                ) : (
+                  <span />
+                )}
+                {memberStats[selectedMember.id]?.pbCount === null ? (
+                  <p className="text-sm font-medium" style={{ color: '#6366f1' }}>
+                    今シーズンの記録がありません
+                  </p>
+                ) : (
+                  <p className="text-sm font-medium" style={{ color: '#6366f1' }}>
+                    今シーズン更新　<span className="font-mono">{memberStats[selectedMember.id]?.pbCount ?? 0}</span>回
+                  </p>
+                )}
+              </div>
               </div>
             )}
           </DialogHeader>

@@ -48,9 +48,9 @@ function formatCm(cm: number): string {
   return rest === 0 ? `${m}m` : `${m}m${rest}cm`
 }
 
-type ChartPoint = { label: string; value: number; eventTitle: string }
+type ChartPoint = { label: string; value: number; eventTitle: string; isPb: boolean }
 type ListItem   =
-  | { kind: 'record'; label: string; eventTitle: string; value: number; eventId: string }
+  | { kind: 'record'; label: string; eventTitle: string; value: number; eventId: string; isPb: boolean }
   | { kind: 'NM' | 'DNS'; label: string; eventTitle: string; eventId: string }
 type TickPx     = { value: number; px: number }
 type XTickPx    = { label: string;  px: number }
@@ -105,11 +105,40 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
   const [xTicks, setXTicks] = useState<XTickPx[]>([])
 
   const chartRef = useRef<ChartJS<'line'>>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const pbIndexRef = useRef<number>(-1)
   const goalCmRef = useRef<number | null | undefined>(goalCm)
   useEffect(() => {
     goalCmRef.current = goalCm
     chartRef.current?.update('none')
   }, [goalCm])
+
+  const pbStarPlugin = useRef<Plugin<'line'>>({
+    id: 'pbStar',
+    afterDatasetsDraw(chart) {
+      const idx = pbIndexRef.current
+      if (idx < 0) return
+      const meta = chart.getDatasetMeta(0)
+      const pt = meta.data[idx]
+      if (!pt) return
+      const { x, y } = pt.getProps(['x', 'y'], true) as { x: number; y: number }
+      const { ctx } = chart
+      const outerR = 10, innerR = outerR * 0.42, spikes = 5
+      let angle = -Math.PI / 2
+      const step = Math.PI / spikes
+      ctx.save()
+      ctx.beginPath()
+      for (let i = 0; i < spikes * 2; i++) {
+        const r = i % 2 === 0 ? outerR : innerR
+        ctx.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r)
+        angle += step
+      }
+      ctx.closePath()
+      ctx.fillStyle = '#f59e0b'
+      ctx.fill()
+      ctx.restore()
+    },
+  }).current
 
   const goalLinePlugin = useRef<Plugin<'line'>>({
     id: 'goalLine',
@@ -173,13 +202,26 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
         } else {
           const cm = parseHeightToCm(record)
           if (cm === null) continue
-          pts.push({ label, value: cm, eventTitle: event.title })
-          items.push({ kind: 'record', label, eventTitle: event.title, value: cm, eventId: event.id })
+          pts.push({ label, value: cm, eventTitle: event.title, isPb: false })
+          items.push({ kind: 'record', label, eventTitle: event.title, value: cm, eventId: event.id, isPb: false })
         }
+      }
+      // 全記録中の最高値のみ自己ベストとしてマーク
+      if (pts.length > 0) {
+        const maxVal = Math.max(...pts.map(p => p.value))
+        const lastPbIdx = pts.map((p, i) => p.value === maxVal ? i : -1).filter(i => i >= 0).at(-1)!
+        pts[lastPbIdx].isPb = true
+        const listRecord = items.filter((it): it is ListItem & { kind: 'record' } => it.kind === 'record')
+        const lastListPbIdx = listRecord.map((it, i) => it.value === maxVal ? i : -1).filter(i => i >= 0).at(-1)
+        if (lastListPbIdx !== undefined) listRecord[lastListPbIdx].isPb = true
       }
       setPoints(pts)
       setListItems(items)
       setLoading(false)
+      // データ確定後、スクロール位置を右端に移動
+      requestAnimationFrame(() => {
+        if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+      })
     }
 
     if (eventsProp && eventRecordsProp) {
@@ -192,6 +234,13 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
       fetch('/api/event-records').then(r => r.json()) as Promise<EventRecords>,
     ]).then(([events, records]) => process(events, records))
   }, [memberId, eventsProp, eventRecordsProp])
+
+  // xTicks 更新（チャート描画完了）のタイミングで右端スクロールを確定
+  useEffect(() => {
+    if (xTicks.length > 0 && scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+    }
+  }, [xTicks])
 
   // 大会リストが揃ったら /payments ページをプリフェッチ（遷移を高速化）
   useEffect(() => {
@@ -211,12 +260,18 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
   const yMaxBase    = Math.max(...values, goalCm ?? 0)
   const yMax        = Math.ceil(yMaxBase / 10) * 10 + 10
 
+  // PBインデックスをプラグインに伝える
+  pbIndexRef.current = points.findIndex(p => p.isPb)
+
   const lineData = {
     labels: points.map(p => p.label),
     datasets: [{
       data: values,
       borderColor: '#6366f1', backgroundColor: '#6366f1',
-      pointRadius: 5, pointHoverRadius: 7, pointHitRadius: 24, tension: 0.3,
+      // PBポイントはカスタムプラグインで描画するため非表示
+      pointRadius:      points.map(p => p.isPb ? 0 : 5),
+      pointHoverRadius: points.map(p => p.isPb ? 0 : 7),
+      pointHitRadius: 24, tension: 0.3,
     }],
   }
 
@@ -246,7 +301,7 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
       <p className="text-xs text-muted-foreground mb-1">横にスクロールできます</p>
 
       {/* 単一の横スクロールコンテナ */}
-      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div ref={scrollRef} className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div style={{ minWidth: chartWidth + Y_AXIS_WIDTH }}>
 
           {/* ── チャート行 ── */}
@@ -288,7 +343,7 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
                 ref={chartRef}
                 data={lineData}
                 options={dataOptions}
-                plugins={[manualGridPlugin, readScalesPlugin, goalLinePlugin]}
+                plugins={[manualGridPlugin, readScalesPlugin, goalLinePlugin, pbStarPlugin]}
               />
             </div>
           </div>
@@ -338,7 +393,9 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
           >
             <span className="text-muted-foreground truncate flex-1">{item.label}　{item.eventTitle}</span>
             {item.kind === 'record' ? (
-              <span className="font-medium tabular-nums shrink-0">{formatCm(item.value)}</span>
+              <span className="flex items-center gap-1 shrink-0">
+                <span className="font-medium tabular-nums">{formatCm(item.value)}</span>
+              </span>
             ) : (
               <span className="text-muted-foreground font-mono shrink-0">{item.kind}</span>
             )}
