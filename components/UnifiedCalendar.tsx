@@ -422,6 +422,28 @@ const removeVideo = (memberId: string, index: number) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, memberId, data }),
     })
+
+    // 試技記録から最高記録を自動算出して更新
+    const successHeights = data.heights.filter(h =>
+      (data.trials[String(h)] ?? []).includes('○')
+    )
+    if (successHeights.length > 0) {
+      const trialBestCm = Math.max(...successHeights)
+
+      // 既存の手動入力値と比較して高い方を採用
+      const existing = eventRecords[eventId]?.[memberId] ?? ''
+      const existingParsed = parseRecord(existing)
+      const existingCm = existingParsed.m !== '' && existingParsed.cm !== ''
+        ? Number(existingParsed.m) * 100 + Number(existingParsed.cm)
+        : 0
+      const bestCm = Math.max(trialBestCm, existingCm)
+
+      const m = String(Math.floor(bestCm / 100))
+      const cm = String(bestCm % 100).padStart(2, '0')
+      const formatted = formatRecord(m, cm)
+      setRecordInputs(prev => ({ ...prev, [memberId]: { m, cm } }))
+      await updateRecord(eventId, memberId, formatted)
+    }
   }
 
   const openEditDialog = (event: Event) => {
@@ -528,12 +550,16 @@ const removeVideo = (memberId: string, index: number) => {
   }
 
   const deleteEvent = async (eventId: string) => {
-    setEvents(prev => prev.filter(e => e.id !== eventId))
-    await fetch('/api/events', {
+    const res = await fetch('/api/events', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: eventId }),
     })
+    if (res.ok) {
+      setEvents(prev => prev.filter(e => e.id !== eventId))
+    } else {
+      alert('削除に失敗しました。再度お試しください。')
+    }
   }
 
   const startAddForm = () => {

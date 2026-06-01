@@ -209,11 +209,11 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
       // 全記録中の最高値のみ自己ベストとしてマーク
       if (pts.length > 0) {
         const maxVal = Math.max(...pts.map(p => p.value))
-        const lastPbIdx = pts.map((p, i) => p.value === maxVal ? i : -1).filter(i => i >= 0).at(-1)!
-        pts[lastPbIdx].isPb = true
+        const firstPbIdx = pts.map((p, i) => p.value === maxVal ? i : -1).filter(i => i >= 0).at(0)!
+        pts[firstPbIdx].isPb = true
         const listRecord = items.filter((it): it is ListItem & { kind: 'record' } => it.kind === 'record')
-        const lastListPbIdx = listRecord.map((it, i) => it.value === maxVal ? i : -1).filter(i => i >= 0).at(-1)
-        if (lastListPbIdx !== undefined) listRecord[lastListPbIdx].isPb = true
+        const firstListPbIdx = listRecord.map((it, i) => it.value === maxVal ? i : -1).filter(i => i >= 0).at(0)
+        if (firstListPbIdx !== undefined) listRecord[firstListPbIdx].isPb = true
       }
       setPoints(pts)
       setListItems(items)
@@ -271,7 +271,7 @@ export default function MemberRecordChart({ memberId, goalCm, onEventClick, even
       // PBポイントはカスタムプラグインで描画するため非表示
       pointRadius:      points.map(p => p.isPb ? 0 : 5),
       pointHoverRadius: points.map(p => p.isPb ? 0 : 7),
-      pointHitRadius: 24, tension: 0.3,
+      pointHitRadius: 24, tension: 0,
     }],
   }
 
