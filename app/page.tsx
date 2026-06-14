@@ -8,7 +8,7 @@ import type { LucideIcon } from 'lucide-react'
 
 const menuItemsBefore: { href: string; icon: LucideIcon; iconColor: string; label: string; desc: string }[] = [
   { href: '/payments', icon: CalendarCheck2, iconColor: '#3BBFAD', label: '練習日/大会カレンダー', desc: '日程の確認と登録' },
-  { href: '/members',  icon: Users,          iconColor: '#7C5CBF', label: 'クラブ生一覧',           desc: '在籍メンバーを確認' },
+  { href: '/members',  icon: Users,          iconColor: '#7C5CBF', label: 'クラブ生成長記録',           desc: '在籍メンバーの大会記録を確認' },
   { href: '/poles',    icon: WandSparkles,   iconColor: '#E8503A', label: 'ポール一覧',             desc: 'クラブ保有ポールを確認' },
 ]
 

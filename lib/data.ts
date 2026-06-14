@@ -209,10 +209,30 @@ export async function saveEventTrialRecords(data: EventTrialRecords): Promise<vo
 // 今シーズン目標: { [memberId]: string }  例: "3m10cm"
 export type MemberGoals = Record<string, string>
 
+// 他の競技記録
+export type OtherSportCategory = 'track' | 'field'
+export type OtherSportRecord = {
+  id: string
+  category: OtherSportCategory  // 'track'=トラック競技 / 'field'=フィールド競技
+  eventName: string              // 競技名（自由入力）
+  value: string                  // タイム or 距離・高さ（自由入力）
+  date: string                   // 記録日 YYYY-MM-DD
+}
+// { [memberId]: OtherSportRecord[] }
+export type OtherSportRecords = Record<string, OtherSportRecord[]>
+
 export async function getMemberGoals(): Promise<MemberGoals> {
   return readStorage<MemberGoals>('member-goals', {})
 }
 
 export async function saveMemberGoals(data: MemberGoals): Promise<void> {
   return writeStorage('member-goals', data)
+}
+
+export async function getOtherSportRecords(): Promise<OtherSportRecords> {
+  return readStorage<OtherSportRecords>('other-sport-records', {})
+}
+
+export async function saveOtherSportRecords(data: OtherSportRecords): Promise<void> {
+  return writeStorage('other-sport-records', data)
 }

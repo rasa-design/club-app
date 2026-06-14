@@ -87,6 +87,8 @@ import { Pencil, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toHalfWidth, parseRecord, formatRecord } from '@/lib/record'
 import MemberRecordChart from '@/components/MemberRecordChart'
+import OtherSportsTab from '@/components/OtherSportsTab'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 type SortOrder = 'grade' | 'name'
 
@@ -258,12 +260,19 @@ export default function MemberList({
       <Dialog open={selectedMember !== null} onOpenChange={open => {
         if (!open) { setSelectedMember(null); setEditingGoal(false) }
       }}>
-        <DialogContent className="max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className="max-h-[85vh] flex flex-col overflow-hidden" suppressAutoFocus>
+          <Tabs defaultValue="pole-vault" className="flex flex-col flex-1 overflow-hidden min-h-0">
           <DialogHeader className="shrink-0">
             <DialogTitle>{selectedMember?.name} の大会記録</DialogTitle>
+            <TabsList className="w-full mt-1">
+              <TabsTrigger value="pole-vault" className="flex-1">棒高跳び</TabsTrigger>
+              <TabsTrigger value="other" className="flex-1">他の競技</TabsTrigger>
+            </TabsList>
+          </DialogHeader>
+          <TabsContent value="pole-vault" className="flex-1 overflow-y-auto min-h-0 mt-0">
             {/* 今シーズン目標 */}
             {selectedMember && (
-              <div className="space-y-1 pt-1">
+              <div className="space-y-1 pt-1 px-1">
               <div className="flex items-center gap-3">
                 {editingGoal ? (
                   <>
@@ -351,8 +360,6 @@ export default function MemberList({
               </div>
               </div>
             )}
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto min-h-0">
             {selectedMember && (
               <MemberRecordChart
                 memberId={selectedMember.id}
@@ -367,7 +374,11 @@ export default function MemberList({
                 eventRecords={Object.keys(recordsData).length > 0 ? recordsData : undefined}
               />
             )}
-          </div>
+          </TabsContent>
+          <TabsContent value="other" className="flex-1 overflow-y-auto min-h-0 mt-0">
+            {selectedMember && <OtherSportsTab memberId={selectedMember.id} />}
+          </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
