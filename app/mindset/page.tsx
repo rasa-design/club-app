@@ -32,14 +32,14 @@ export default function MindsetPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Heart className="h-5 w-5 shrink-0" style={{ color: '#E85FA0' }} />
-        <h2 className="text-xl font-bold text-gray-800">マインドセット</h2>
+        <Heart className="h-5 w-5 shrink-0" style={{ color: 'var(--color-feature-mindset)' }} />
+        <h2 className="text-xl font-bold text-foreground">マインドセット</h2>
       </div>
       <div className="space-y-3">
         {items.map((item) => (
           <div key={item.num} className="rounded-lg border bg-card p-4 space-y-1.5">
             <div className="flex items-baseline gap-2">
-              <span className="text-sm font-bold text-[#E85FA0] shrink-0">{item.num}</span>
+              <span className="text-sm font-bold shrink-0" style={{ color: 'var(--color-feature-mindset)' }}>{item.num}</span>
               <h3 className="text-sm font-bold leading-snug">{item.title}</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line pl-5">

@@ -1,0 +1,11 @@
+[
+  {
+    "date": "2026-06-20",
+    "macrostructure": "app-home (tiered nav grid)",
+    "theme": "custom (shadcn/ui base + feature-color layer)",
+    "theme_axes": "light / rounded-sans / multi",
+    "enrichment": "none (hero photo is user-supplied asset)",
+    "scope": "app",
+    "brief": "GPVCクラブ · pole vault club parent app · audit remediation redesign"
+  }
+]

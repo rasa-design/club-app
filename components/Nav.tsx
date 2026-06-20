@@ -11,13 +11,13 @@ import { useHasNewUpdates } from '@/hooks/useHasNewUpdates'
 
 const links = [
   { href: '/',         label: 'ホーム',                   color: 'var(--primary)' },
-  { href: '/payments', label: '練習日/大会カレンダー',   color: '#3BBFAD' },
-  { href: '/members',  label: 'クラブ生成長記録',             color: '#7C5CBF' },
-  { href: '/poles',    label: 'ポール一覧',               color: '#E8503A' },
-  { href: '/updates',  label: 'アップデート情報',         color: '#6B7280' },
-  { href: '/mindset',  label: 'マインドセット',           color: '#E85FA0' },
-  { href: '/links',    label: 'よく使うリンク',           color: '#F59E0B' },
-  { href: '/admin',    label: '管理者メニュー',           color: '#F7D33E' },
+  { href: '/payments', label: '練習日/大会カレンダー',   color: 'var(--color-feature-calendar)' },
+  { href: '/members',  label: 'クラブ生成長記録',             color: 'var(--color-feature-members)' },
+  { href: '/poles',    label: 'ポール一覧',               color: 'var(--color-feature-poles)' },
+  { href: '/updates',  label: 'アップデート情報',         color: 'var(--muted-foreground)' },
+  { href: '/mindset',  label: 'マインドセット',           color: 'var(--color-feature-mindset)' },
+  { href: '/links',    label: 'よく使うリンク',           color: 'var(--color-feature-links)' },
+  { href: '/admin',    label: '管理者メニュー',           color: 'var(--color-feature-admin)' },
 ]
 
 export default function Nav() {
@@ -80,7 +80,7 @@ export default function Nav() {
         )}
       >
         <div className="flex items-center justify-between px-4 h-14 border-b">
-          <span className="font-bold text-muted-foreground">Menu</span>
+          <span className="font-bold text-muted-foreground">メニュー</span>
           <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
             <X className="h-5 w-5" />
           </Button>

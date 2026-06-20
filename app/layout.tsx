@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Noto_Sans_JP } from 'next/font/google'
+import { Noto_Sans_JP, Nunito } from 'next/font/google'
 import './globals.css'
 import Nav from '@/components/Nav'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -11,6 +11,12 @@ const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
   variable: '--font-noto-sans-jp',
+})
+
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['700'],
+  variable: '--font-nunito',
 })
 
 export const metadata: Metadata = {
@@ -29,7 +35,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja" className={notoSansJP.variable}>
+    <html lang="ja" className={`${notoSansJP.variable} ${nunito.variable}`}>
       <body className="bg-background min-h-screen">
         <ServiceWorkerRegister />
         <AutoRefresh />

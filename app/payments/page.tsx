@@ -24,10 +24,10 @@ export default async function CalendarPage() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
-        <CalendarCheck2 className="h-5 w-5 shrink-0" style={{ color: '#3BBFAD' }} />
-        <h2 className="text-xl font-bold text-gray-800">練習日/大会カレンダー</h2>
+        <CalendarCheck2 className="h-5 w-5 shrink-0" style={{ color: 'var(--color-feature-calendar)' }} />
+        <h2 className="text-xl font-bold text-foreground">練習日/大会カレンダー</h2>
       </div>
-      <p className="text-xs text-gray-500 mb-4">日程の確認と登録</p>
+      <p className="text-xs text-muted-foreground mb-4">日程の確認と登録</p>
       <UnifiedCalendar
         initialPractices={practices}
         initialAttendance={attendance}

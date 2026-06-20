@@ -48,7 +48,7 @@ export default function AdminDashboard({
     <div className="space-y-4">
       {/* ヘッダー */}
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-bold text-gray-800">管理者ダッシュボード</h2>
+        <h2 className="text-xl font-bold text-foreground">管理者ダッシュボード</h2>
         <LogoutButton />
       </div>
 

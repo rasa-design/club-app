@@ -14,8 +14,8 @@ export default function LinksPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Link2 className="h-5 w-5 shrink-0" style={{ color: '#F59E0B' }} />
-        <h2 className="text-xl font-bold text-gray-800">よく使うリンク</h2>
+        <Link2 className="h-5 w-5 shrink-0" style={{ color: 'var(--color-feature-links)' }} />
+        <h2 className="text-xl font-bold text-foreground">よく使うリンク</h2>
       </div>
 
       {/* -mr-4 で右端まで線を伸ばしつつ overflow-x-hidden でスクロール防止 */}

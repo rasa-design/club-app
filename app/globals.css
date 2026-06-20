@@ -83,6 +83,28 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Hallmark · Feature color tokens */
+  --color-feature-calendar: oklch(0.72 0.11 192);
+  --color-feature-members:  oklch(0.49 0.15 283);
+  --color-feature-poles:    oklch(0.58 0.19 27);
+  --color-feature-mindset:  oklch(0.62 0.20 349);
+  --color-feature-links:    oklch(0.77 0.16 79);
+  --color-feature-admin:    oklch(0.87 0.17 96);
+
+  /* Hero animation accent tokens */
+  --color-hero-sky:   oklch(0.74 0.13 239);
+  --color-hero-green: oklch(0.66 0.12 155);
+  --color-hero-amber: oklch(0.77 0.16 72);
+
+  /* Easing */
+  --ease-out:      cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Duration */
+  --dur-short:  220ms;
+  --dur-medium: 400ms;
+  --dur-long:   900ms;
 }
 
 .dark {
@@ -138,5 +160,8 @@
   }
   html {
     @apply font-sans;
+  }
+  html, body {
+    overflow-x: clip;
   }
 }
