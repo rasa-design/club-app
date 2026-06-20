@@ -60,12 +60,6 @@ export default function HeroAnimatedText() {
   const arrivedRef = useRef(false)
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setArrived(true)
-      arrivedRef.current = true
-      return
-    }
-
     // スライドイン
     let raf1: number, raf2: number
     raf1 = requestAnimationFrame(() => {
