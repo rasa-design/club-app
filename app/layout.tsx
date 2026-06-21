@@ -6,6 +6,7 @@ import AutoRefresh from '@/components/AutoRefresh'
 import UpdateNoticeDialog from '@/components/UpdateNoticeDialog'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import PushSubscribePrompt from '@/components/PushSubscribePrompt'
+import { InstallPrompt } from '@/components/InstallPrompt'
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AutoRefresh />
         <UpdateNoticeDialog />
         <PushSubscribePrompt />
+        <InstallPrompt />
         <Nav />
         <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
       </body>
